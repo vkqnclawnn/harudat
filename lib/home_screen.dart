@@ -185,27 +185,70 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 상단 정보줄 (이름, 통계)
+          // 상단 정보줄 (이름, 통계, 수정/삭제 버튼)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // D-Day 이름
-              Text(
-                dday.name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+              Expanded(
+                child: Text(
+                  dday.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              // 진행 통계
-              Text(
-                '${dday.burnedDays}/${dday.totalDays}  ${dday.progressPercent.toStringAsFixed(1)}%',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
+              // 진행 통계 + 수정/삭제 버튼
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 진행 통계
+                  Text(
+                    '${dday.burnedDays}/${dday.totalDays}  ${dday.progressPercent.toStringAsFixed(1)}%',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 수정 버튼
+                  GestureDetector(
+                    onTap: () => _showAddDDaySheet(existingDDay: dday),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.edit_rounded,
+                        size: 18,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  // 삭제 버튼
+                  GestureDetector(
+                    onTap: () => _showDeleteDialog(dday),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.delete_rounded,
+                        size: 18,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -214,6 +257,158 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildDotMatrix(dday),
         ],
       ),
+    );
+  }
+
+  /// 삭제 확인 다이얼로그 (블러 + 애니메이션)
+  void _showDeleteDialog(DDayModel dday) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Delete Dialog',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Container();
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        // 탄성 애니메이션 커브
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutBack,
+        );
+
+        return Stack(
+          children: [
+            // 블러 배경
+            BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: 5 * animation.value,
+                sigmaY: 5 * animation.value,
+              ),
+              child: Container(
+                color: Colors.black.withOpacity(0.3 * animation.value),
+              ),
+            ),
+            // 스케일 애니메이션 적용 다이얼로그
+            ScaleTransition(
+              scale: curvedAnimation,
+              child: Center(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 경고 아이콘
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.warning_rounded,
+                          size: 36,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      // 타이틀
+                      const Text(
+                        '디데이 삭제',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // 내용
+                      Text(
+                        '정말로 "${dday.name}"을(를) 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          height: 1.4,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // 버튼들
+                      Row(
+                        children: [
+                          // 취소 버튼
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: TextButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(color: Colors.grey[300]!),
+                                ),
+                              ),
+                              child: Text(
+                                '취소',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // 삭제 버튼
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                context.read<DDayProvider>().deleteDDay();
+                                Navigator.pop(context);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.redAccent,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                '삭제',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -249,10 +444,10 @@ class _HomeScreenState extends State<HomeScreen> {
         bool isToday = index == todayIndex;
 
         if (index < todayIndex) {
-          // 지나간 날: 빨간색 
+          // 지나간 날: 빨간색
           dotColor = const Color.fromARGB(255, 255, 110, 110);
         } else if (isToday) {
-          // 오늘: 빨간색 
+          // 오늘: 빨간색
           dotColor = Color.fromARGB(255, 255, 16, 16);
         } else {
           // 남은 날: 회색 (Active)r
@@ -285,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
           gradient: hasDDay
               ? null
               : const LinearGradient(
-                  colors: [Color(0xFF5B9CFF), Color(0xFF3B82F6)],
+                  colors: [Color(0xFF66BB6A), Color(0xFF4CAF50)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -295,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen> {
             BoxShadow(
               color: hasDDay
                   ? Colors.black.withOpacity(0.05)
-                  : const Color(0xFF3B82F6).withOpacity(0.3),
+                  : const Color(0xFF4CAF50).withOpacity(0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -305,7 +500,7 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              hasDDay ? '디데이 추가' : '디데이 추가하기',
+              hasDDay ? '디데이 수정하기' : '디데이 추가하기',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -314,7 +509,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 6),
             Icon(
-              Icons.add,
+              hasDDay ? Icons.edit_rounded : Icons.add,
               size: 20,
               color: hasDDay ? Colors.grey[600] : Colors.white,
             ),

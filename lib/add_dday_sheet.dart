@@ -67,7 +67,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF3B82F6),
+              primary: Color(0xFF4CAF50),
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -253,7 +253,10 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                   ),
                 ),
               ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+            // 총 기간 표시 컨테이너
+            _buildDurationInfo(),
+            const SizedBox(height: 24),
             // 저장 버튼
             SizedBox(
               width: double.infinity,
@@ -261,7 +264,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
               child: ElevatedButton(
                 onPressed: _onSave,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3B82F6),
+                  backgroundColor: const Color(0xFF4CAF50),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -316,14 +319,14 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                       _isToday(date) ? '오늘' : _formatDate(date),
                       style: const TextStyle(
                         fontSize: 16,
-                        color: Color(0xFF3B82F6),
+                        color: Color(0xFF4CAF50),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(width: 4),
                     const Icon(
                       Icons.chevron_right,
-                      color: Color(0xFF3B82F6),
+                      color: Color(0xFF4CAF50),
                       size: 24,
                     ),
                   ],
@@ -340,6 +343,57 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
             color: Colors.grey[300],
           ),
       ],
+    );
+  }
+
+  /// 총 기간 계산
+  int get _totalDays {
+    return _endDate.difference(_startDate).inDays + 1;
+  }
+
+  /// 총 기간 표시 위젯
+  Widget _buildDurationInfo() {
+    final days = _totalDays;
+    final isValid = days > 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      decoration: BoxDecoration(
+        color: isValid ? const Color(0xFFE8F5E9) : Colors.red[50],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.calendar_today_rounded,
+            size: 20,
+            color: isValid ? const Color(0xFF2E7D32) : Colors.redAccent,
+          ),
+          const SizedBox(width: 10),
+          RichText(
+            text: TextSpan(
+              style: TextStyle(
+                fontSize: 16,
+                color: isValid ? Colors.grey[700] : Colors.redAccent,
+              ),
+              children: [
+                const TextSpan(text: '총 '),
+                TextSpan(
+                  text: isValid ? '$days' : '0',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: isValid ? const Color(0xFF2E7D32) : Colors.redAccent,
+                  ),
+                ),
+                const TextSpan(text: '일 동안'),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
