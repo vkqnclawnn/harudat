@@ -249,13 +249,13 @@ class _HomeScreenState extends State<HomeScreen> {
         bool isToday = index == todayIndex;
 
         if (index < todayIndex) {
-          // 지나간 날: 초록색 (Burned)
-          dotColor = const Color(0xFF2FFF00);
+          // 지나간 날: 빨간색 
+          dotColor = const Color.fromARGB(255, 255, 79, 79);
         } else if (isToday) {
-          // 오늘: 빨간색 (강조)
-          dotColor = const Color(0xFFFF0000);
+          // 오늘: 빨간색 
+          dotColor = Color.fromARGB(255, 195, 0, 0);
         } else {
-          // 남은 날: 회색 (Active)
+          // 남은 날: 회색 (Active)r
           dotColor = const Color(0xFF848484);
         }
 
