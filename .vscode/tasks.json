@@ -1,0 +1,184 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "휴대폰 실행",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "flutter run -d RFCW30YWG2M | findstr flutter"
+            ],
+            "group": "build",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "close": false,
+                "focus": false
+            },
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "."
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^Launching.*",
+                    "endsPattern": "^(Flutter run key commands\\.|An Observatory debugger)"
+                }
+            },
+            "detail": "📱 휴대폰 실행 (RFCW30YWG2M) - Flutter 로그만 표시"
+        },
+        {
+            "label": "테블릿 실행",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "flutter run -d R54X200JZWB | findstr flutter"
+            ],
+            "group": "build",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "close": false,
+                "focus": false
+            },
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "."
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^Launching.*",
+                    "endsPattern": "^(Flutter run key commands\\.|An Observatory debugger)"
+                }
+            },
+            "detail": "📱 테블릿 실행 (R54X200JZWB) - Flutter 로그만 표시"
+        },
+        {
+            "label": "레일웨이에 배포",
+            "type": "shell",
+            "command": "git",
+            "args": [
+                "add",
+                ".",
+                "&&",
+                "git",
+                "commit",
+                "-m",
+                "UPDATE",
+                "&&",
+                "git",
+                "push",
+                "origin",
+                "main"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "close": false
+            },
+            "detail": "Railway 서버 배포 (MongoDB Atlas 연동)"
+        },
+        {
+            "label": "실행 중인 Flutter 프로세스 확인",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-Command",
+                "Get-Process | Where-Object {$_.ProcessName -like '*flutter*'}"
+            ],
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "close": false
+            },
+            "detail": "실행 중인 Flutter 프로세스 확인"
+        },
+        {
+            "label": "★초정상 레일웨이 배포★",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "git add . && git commit -m \"초정상\" && git push origin main"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "close": false
+            },
+            "detail": "레일웨이 푸시 (초정상)"
+        },
+        {
+            "label": "동시 실행 (휴대폰 + 테블릿)",
+            "dependsOn": [
+                "휴대폰 실행",
+                "테블릿 실행"
+            ],
+            "dependsOrder": "sequence",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "detail": "📱📱 동시 실행 (RFCW30YWG2M + R54X200JZWB) - Flutter 로그만 표시"
+        },
+        {
+            "label": "휴대폰 실행 (로그 전체)",
+            "type": "shell",
+            "command": "flutter",
+            "args": [
+                "run",
+                "-d",
+                "RFCW30YWG2M"
+            ],
+            "group": "build",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "close": false,
+                "focus": false
+            },
+            "problemMatcher": [],
+            "detail": "☎️ 휴대폰 실행 (RFCW30YWG2M) - 모든 로그 표시"
+        },
+        {
+            "label": "테블릿 실행 (로그 전체)",
+            "type": "shell",
+            "command": "flutter",
+            "args": [
+                "run",
+                "-d",
+                "R54X200JZWB"
+            ],
+            "group": "build",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "close": false,
+                "focus": false
+            },
+            "problemMatcher": [],
+            "detail": "� 테블릿 실행 (R54X200JZWB) - 모든 로그 표시"
+        },
+        {
+            "label": "동시 실행 (로그 전체)",
+            "dependsOn": [
+                "휴대폰 실행 (로그 전체)",
+                "테블릿 실행 (로그 전체)"
+            ],
+            "dependsOrder": "sequence",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "detail": "⚡ 동시 실행 (RFCW30YWG2M + R54X200JZWB) - 모든 로그 표시"
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "flutter.deviceId": "RFCW30YWG2M",
+    "flutter.defaultDevice": "RFCW30YWG2M",
+    "files.associations": {
+        "*.md": "markdown"
+    },
+    "git.autofetch": true,
+    "terminal.integrated.profiles.windows": {
+        "Flutter Development": {
+            "path": "cmd.exe", 
+            "args": ["/k", "echo Flutter Development Environment Ready"]
+        }
+    },
+    // 개발 환경 정보 - AI Assistant Reference
+    "copilot.chat.localeOverride": "ko",
+    "copilot.enable": {
+        "*": true,
+        "yaml": true,   
+        "plaintext": true,
+        "markdown": true
+    }
+}
