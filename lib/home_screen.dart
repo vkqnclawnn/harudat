@@ -250,10 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (index < todayIndex) {
           // 지나간 날: 빨간색 
-          dotColor = const Color.fromARGB(255, 255, 79, 79);
+          dotColor = const Color.fromARGB(255, 255, 110, 110);
         } else if (isToday) {
           // 오늘: 빨간색 
-          dotColor = Color.fromARGB(255, 195, 0, 0);
+          dotColor = Color.fromARGB(255, 255, 16, 16);
         } else {
           // 남은 날: 회색 (Active)r
           dotColor = const Color(0xFF848484);

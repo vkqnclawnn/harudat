@@ -17,6 +17,8 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
   late TextEditingController _nameController;
   late DateTime _startDate;
   late DateTime _endDate;
+  String? _nameError; // 이름 에러 메시지
+  String? _dateError; // 날짜 에러 메시지
 
   @override
   void initState() {
@@ -99,24 +101,24 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
   void _onSave() {
     final name = _nameController.text.trim();
 
+    // 에러 초기화
+    setState(() {
+      _nameError = null;
+      _dateError = null;
+    });
+
     // 유효성 검사
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('디데이 이름을 입력해주세요.'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      setState(() {
+        _nameError = '디데이 이름을 입력해주세요';
+      });
       return;
     }
 
     if (_endDate.isBefore(_startDate)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('마감일은 시작일보다 이후여야 합니다.'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      setState(() {
+        _dateError = '마감일은 시작일보다 이후여야 합니다';
+      });
       return;
     }
 
@@ -193,6 +195,22 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                 ),
               ),
             ),
+            // 이름 에러 메시지 표시
+            if (_nameError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _nameError!,
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(height: 16),
             // 날짜 선택 컨테이너
             Container(
@@ -219,6 +237,22 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                 ],
               ),
             ),
+            // 날짜 에러 메시지 표시
+            if (_dateError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _dateError!,
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(height: 32),
             // 저장 버튼
             SizedBox(
