@@ -140,10 +140,6 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
 
     return Container(
       margin: EdgeInsets.only(bottom: bottomInset),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
         child: Column(
