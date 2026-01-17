@@ -24,19 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.transparent,
-      elevation: 0,
-      clipBehavior: Clip.none,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: AddDDaySheet(existingDDay: existingDDay),
-      ),
+      builder: (context) => AddDDaySheet(existingDDay: existingDDay),
     ).then((_) {
       setState(() => _isBlurred = false);
     });
