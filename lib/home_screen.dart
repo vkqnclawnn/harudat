@@ -167,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           // FAB는 D-Day가 없을 때만 표시 (하단 중앙)
-          floatingActionButton: !provider.hasDDay ? _buildFAB() : null,
+          floatingActionButton: null,
           floatingActionButtonLocation:
               FloatingActionButtonLocation.centerFloat,
         );
@@ -191,10 +191,11 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               Expanded(
                 child: Text(
-                  '하루의 디데이',
+                  'D-Dot',
                   style: textTheme.displaySmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: colors.onSurface,
+                    letterSpacing: 0.6,
                   ),
                 ),
               ),
@@ -208,85 +209,89 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            '오늘부터 시작할 한 가지를 적어둬요.',
-            style: textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: colors.onSurface.withValues(alpha: 0.75),
-            ),
-          ),
           const SizedBox(height: 40),
           Expanded(
             child: Center(
-              child: Container(
-                width: double.infinity,
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 60, horizontal: 40),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: colors.outline.withValues(alpha: 0.4),
+              child: Card(
+                elevation: 0,
+                color: Colors.transparent,
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 48, horizontal: 28),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    gradient: LinearGradient(
+                      colors: [
+                        colors.surfaceContainerHighest,
+                        colors.surface,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    border: Border.all(
+                      color: colors.outline.withValues(alpha: 0.3),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context)
+                            .shadowColor
+                            .withValues(alpha: 0.12),
+                        blurRadius: 22,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color:
-                          Theme.of(context).shadowColor.withValues(alpha: 0.12),
-                      blurRadius: 14,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          ImageFiltered(
-                            imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                            child: Icon(
-                              Icons.hourglass_empty,
-                              size: 48,
-                              color: colors.onSurface.withValues(alpha: 0.2),
-                            ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              colors.primary.withValues(alpha: 0.15),
+                              colors.primary.withValues(alpha: 0.35),
+                            ],
                           ),
-                          Icon(
-                            Icons.hourglass_empty,
-                            size: 48,
-                            color: colors.onSurface,
-                          ),
-                        ],
+                        ),
+                        child: Icon(
+                          Icons.hourglass_empty_rounded,
+                          size: 34,
+                          color: colors.primary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '아직 기록된 디데이가 없어요.',
-                      style: textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface.withValues(alpha: 0.8),
+                      const SizedBox(height: 20),
+                      Text(
+                        '아직 기록된 디데이가 없어요.',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: colors.onSurface,
+                          letterSpacing: 0.2,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '예: 수능, 첫 공연, 이사, 전역일',
-                      style: textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: colors.onSurface.withValues(alpha: 0.55),
+                      const SizedBox(height: 8),
+                      Text(
+                        '예: 수능, 첫 공연, 이사, 전역일',
+                        style: textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: colors.onSurface.withValues(alpha: 0.55),
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                      const SizedBox(height: 28),
+                      _buildAddButton(),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 100),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -304,17 +309,32 @@ class _HomeScreenState extends State<HomeScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Text(
-                  '오늘의 디데이',
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: colors.onSurface.withValues(alpha: 0.7),
-                    letterSpacing: 0.3,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '오늘의 D-Dot',
+                      style: textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface.withValues(alpha: 0.6),
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'D-Dot',
+                      style: textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: colors.onSurface,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               IconButton(
@@ -327,16 +347,9 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            '하루는 길지 않지만, 남는 건 많아요.',
-            style: textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: colors.onSurface,
-            ),
-          ),
+          const SizedBox(height: 20),
           // D-Day 카드
-          const SizedBox(height: 18),
+          const SizedBox(height: 8),
           ...ddays.map(
             (dday) => Padding(
               padding: const EdgeInsets.only(bottom: 16),
@@ -345,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           // 디데이 추가하기 버튼 (카드 바로 아래)
           _buildAddButton(),
-          const SizedBox(height: 40), // 여유 공간
+          const SizedBox(height: 56), // 여유 공간
         ],
       ),
     );
@@ -364,16 +377,23 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          colors: [
+            colors.surface,
+            todayColor.withValues(alpha: 0.12),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: colors.outline.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
             color: Theme.of(context).shadowColor.withValues(alpha: 0.12),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
+            blurRadius: 20,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -459,7 +479,7 @@ class _HomeScreenState extends State<HomeScreen>
               Text(
                 'D-${dday.remainingDays}',
                 style: textTheme.displaySmall?.copyWith(
-                  fontSize: 36,
+                  fontSize: 44,
                   fontWeight: FontWeight.w800,
                   color: todayColor,
                   letterSpacing: -0.5,
@@ -478,7 +498,17 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: (dday.progressPercent / 100).clamp(0.0, 1.0),
+              minHeight: 8,
+              backgroundColor: pastColor.withValues(alpha: 0.2),
+              valueColor: AlwaysStoppedAnimation<Color>(todayColor),
+            ),
+          ),
+          const SizedBox(height: 14),
           _buildDotMatrix(dday, pastColor: pastColor, todayColor: todayColor),
         ],
       ),
@@ -494,41 +524,50 @@ class _HomeScreenState extends State<HomeScreen>
         // 새로운 D-Day 추가 (existingDDay: null)
         _showAddDDaySheet();
       },
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.65,
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: colors.outline.withValues(alpha: 0.6)),
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(context).shadowColor.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+      child: SizedBox(
+        width: 200,
+        height: 52,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              colors: [
+                colors.primary,
+                colors.primary.withValues(alpha: 0.85),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.add,
-              size: 18,
-              color: colors.onSurface,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '새 디데이 만들기',
-              style: textTheme.bodyMedium?.copyWith(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: colors.onSurface,
+            boxShadow: [
+              BoxShadow(
+                color: colors.primary.withValues(alpha: 0.3),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
               ),
+            ],
+          ),
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.add,
+                  size: 24,
+                  color: colors.onPrimary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '새 디데이 만들기',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
+                    color: colors.onPrimary,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

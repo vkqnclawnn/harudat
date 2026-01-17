@@ -60,7 +60,7 @@ class _HaruShaderWarmUp extends ShaderWarmUp {
 
     paragraphBuilder.addText('HaruDot');
     final paragraph = paragraphBuilder.build()
-      ..layout(ui.ParagraphConstraints(width: 160));
+      ..layout(const ui.ParagraphConstraints(width: 160));
     canvas.drawParagraph(paragraph, const ui.Offset(28, 40));
 
     final dotPaint = ui.Paint()..color = const ui.Color(0xFF1E88E5);
