@@ -9,36 +9,54 @@ import '../dday_model.dart';
 
 class HomeWidgetService {
   static const String _dataKey = 'dday_data';
-  static const String _imageKeyFull = 'widget_image_full';
-  static const String _imageKeyMini = 'widget_image_mini';
-  static const String _androidWidgetName = 'HaruDotWidgetProvider';
+  static const String _imageKeyFull = 'widget_full_image';
+  static const String _imageKeyMini = 'widget_mini_image';
+  static const String _androidWidgetFull = 'FullWidgetProvider';
+  static const String _androidWidgetMini = 'MiniWidgetProvider';
 
   static Future<void> updateHomeWidget(DDayModel dday) async {
     await HomeWidget.saveWidgetData(_dataKey, jsonEncode(dday.toJson()));
 
+    await renderFullWidget(dday);
+    await renderMiniWidget(dday);
+
+    await HomeWidget.updateWidget(
+      name: _androidWidgetFull,
+      androidName: _androidWidgetFull,
+    );
+    await HomeWidget.updateWidget(
+      name: _androidWidgetMini,
+      androidName: _androidWidgetMini,
+    );
+  }
+
+  static Future<void> renderFullWidget(DDayModel dday) async {
     await HomeWidget.renderFlutterWidget(
       HaruDotWidgetFull(dday: dday),
       logicalSize: const Size(360, 360),
+      pixelRatio: 4.0,
       key: _imageKeyFull,
     );
+  }
 
+  static Future<void> renderMiniWidget(DDayModel dday) async {
     await HomeWidget.renderFlutterWidget(
       HaruDotWidgetMini(dday: dday),
       logicalSize: const Size(240, 140),
+      pixelRatio: 4.0,
       key: _imageKeyMini,
-    );
-
-    await HomeWidget.updateWidget(
-      name: _androidWidgetName,
-      androidName: _androidWidgetName,
     );
   }
 
   static Future<void> clearHomeWidget() async {
     await HomeWidget.saveWidgetData(_dataKey, null);
     await HomeWidget.updateWidget(
-      name: _androidWidgetName,
-      androidName: _androidWidgetName,
+      name: _androidWidgetFull,
+      androidName: _androidWidgetFull,
+    );
+    await HomeWidget.updateWidget(
+      name: _androidWidgetMini,
+      androidName: _androidWidgetMini,
     );
   }
 
@@ -103,15 +121,16 @@ class HaruDotWidgetFull extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _DotMatrix(
-            totalDays: dday.totalDays,
-            todayIndex: dday.todayIndex,
-            pastColor: accent.withValues(alpha: 0.8),
-            todayColor: accent,
-            futureColor: foreground.withValues(alpha: 0.18),
-            maxDotSize: 7.0,
-            minDotSize: 3.5,
-            spacing: 3,
+          ClipRect(
+            child: _DotMatrix(
+              totalDays: dday.totalDays,
+              todayIndex: dday.todayIndex,
+              pastColor: accent.withValues(alpha: 0.8),
+              todayColor: accent,
+              futureColor: foreground.withValues(alpha: 0.18),
+              dotSize: 7.0,
+              spacing: 3,
+            ),
           ),
         ],
       ),
@@ -173,15 +192,16 @@ class HaruDotWidgetMini extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          _DotMatrix(
-            totalDays: dday.totalDays,
-            todayIndex: dday.todayIndex,
-            pastColor: accent.withValues(alpha: 0.75),
-            todayColor: accent,
-            futureColor: foreground.withValues(alpha: 0.18),
-            maxDotSize: 5.5,
-            minDotSize: 2.8,
-            spacing: 2.5,
+          ClipRect(
+            child: _DotMatrix(
+              totalDays: dday.totalDays,
+              todayIndex: dday.todayIndex,
+              pastColor: accent.withValues(alpha: 0.75),
+              todayColor: accent,
+              futureColor: foreground.withValues(alpha: 0.18),
+              dotSize: 5.5,
+              spacing: 2.5,
+            ),
           ),
         ],
       ),
@@ -195,8 +215,7 @@ class _DotMatrix extends StatelessWidget {
   final Color pastColor;
   final Color todayColor;
   final Color futureColor;
-  final double maxDotSize;
-  final double minDotSize;
+  final double dotSize;
   final double spacing;
 
   const _DotMatrix({
@@ -205,19 +224,12 @@ class _DotMatrix extends StatelessWidget {
     required this.pastColor,
     required this.todayColor,
     required this.futureColor,
-    required this.maxDotSize,
-    required this.minDotSize,
+    required this.dotSize,
     required this.spacing,
   });
 
   @override
   Widget build(BuildContext context) {
-    double dotSize = maxDotSize;
-    if (totalDays > 365) {
-      final scale = totalDays / 365;
-      dotSize = (maxDotSize / scale).clamp(minDotSize, maxDotSize);
-    }
-
     return Wrap(
       spacing: spacing,
       runSpacing: spacing,
