@@ -24,6 +24,8 @@ void main() async {
     final ddayProvider = DDayProvider();
     await ddayProvider.init();
 
+    await HomeWidgetService.updateFromStorage();
+
     runApp(HaruDotApp(ddayProvider: ddayProvider));
 
     // 첫 프레임 전에 셰이더를 미리 준비
@@ -31,8 +33,6 @@ void main() async {
   } finally {
     WidgetsBinding.instance.allowFirstFrame();
   }
-
-  await HomeWidgetService.updateFromStorage();
 }
 
 class _HaruShaderWarmUp extends ShaderWarmUp {
