@@ -12,7 +12,104 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _enterController;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
+  bool _didWarmUp = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _enterController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+    );
+    final curve = CurvedAnimation(
+      parent: _enterController,
+      curve: Curves.easeOutCubic,
+    );
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(curve);
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.02),
+      end: Offset.zero,
+    ).animate(curve);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _runFirstWarmUp();
+    });
+  }
+
+  Future<void> _runFirstWarmUp() async {
+    if (_didWarmUp || !mounted) return;
+    _didWarmUp = true;
+
+    final overlay = Overlay.of(context);
+
+    final entry = OverlayEntry(
+      builder: (context) {
+        return const IgnorePointer(
+          child: Opacity(
+            opacity: 0.01,
+            child: Center(
+              child: Material(
+                color: Colors.transparent,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 280,
+                      child: TextField(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    overlay.insert(entry);
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    entry.remove();
+    await _warmUpBottomSheet();
+    _enterController.forward();
+  }
+
+  Future<void> _warmUpBottomSheet() async {
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+    });
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      barrierColor: Colors.transparent,
+      builder: (context) {
+        return const Opacity(
+          opacity: 0.01,
+          child: AddDDaySheet(),
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _enterController.dispose();
+    super.dispose();
+  }
+
   String _formatMonthDay(DateTime date) {
     return '${date.month}.${date.day}';
   }
@@ -31,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
           filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
           child: Container(
             decoration: BoxDecoration(
-              color: colors.scrim.withOpacity(0.3),
+              color: colors.scrim.withValues(alpha: 0.3),
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(24)),
             ),
@@ -57,9 +154,17 @@ class _HomeScreenState extends State<HomeScreen> {
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
-            child: provider.hasDDay
-                ? _buildActiveState(provider.ddayList)
-                : _buildEmptyState(),
+            child: RepaintBoundary(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: provider.hasDDay
+                      ? _buildActiveState(provider.ddayList)
+                      : _buildEmptyState(),
+                ),
+              ),
+            ),
           ),
           // FAB는 D-Day가 없을 때만 표시 (하단 중앙)
           floatingActionButton: !provider.hasDDay ? _buildFAB() : null,
@@ -89,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   '하루의 디데이',
                   style: textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: colors.onBackground,
+                    color: colors.onSurface,
                   ),
                 ),
               ),
@@ -97,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () => themeProvider.toggleTheme(),
                 icon: Icon(
                   isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                  color: colors.onBackground,
+                  color: colors.onSurface,
                 ),
                 tooltip: isDark ? '라이트 모드' : '다크 모드',
               ),
@@ -108,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
             '오늘부터 시작할 한 가지를 적어둬요.',
             style: textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w500,
-              color: colors.onSurface.withOpacity(0.75),
+              color: colors.onSurface.withValues(alpha: 0.75),
             ),
           ),
           const SizedBox(height: 40),
@@ -122,10 +227,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   color: colors.surface,
                   borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: colors.outline.withOpacity(0.4)),
+                  border: Border.all(
+                    color: colors.outline.withValues(alpha: 0.4),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Theme.of(context).shadowColor.withOpacity(0.12),
+                      color:
+                          Theme.of(context).shadowColor.withValues(alpha: 0.12),
                       blurRadius: 14,
                       offset: const Offset(0, 8),
                     ),
@@ -144,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Icon(
                               Icons.hourglass_empty,
                               size: 48,
-                              color: colors.onSurface.withOpacity(0.2),
+                              color: colors.onSurface.withValues(alpha: 0.2),
                             ),
                           ),
                           Icon(
@@ -160,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       '아직 기록된 디데이가 없어요.',
                       style: textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: colors.onSurface.withOpacity(0.8),
+                        color: colors.onSurface.withValues(alpha: 0.8),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -169,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       '예: 수능, 첫 공연, 이사, 전역일',
                       style: textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w500,
-                        color: colors.onSurface.withOpacity(0.55),
+                        color: colors.onSurface.withValues(alpha: 0.55),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -204,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   '오늘의 디데이',
                   style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: colors.onSurface.withOpacity(0.7),
+                    color: colors.onSurface.withValues(alpha: 0.7),
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -213,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () => themeProvider.toggleTheme(),
                 icon: Icon(
                   isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                  color: colors.onBackground,
+                  color: colors.onSurface,
                 ),
                 tooltip: isDark ? '라이트 모드' : '다크 모드',
               ),
@@ -224,19 +332,17 @@ class _HomeScreenState extends State<HomeScreen> {
             '하루는 길지 않지만, 남는 건 많아요.',
             style: textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
-              color: colors.onBackground,
+              color: colors.onSurface,
             ),
           ),
           // D-Day 카드
           const SizedBox(height: 18),
-          ...ddays
-              .map(
-                (dday) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildDDayCard(dday),
-                ),
-              )
-              .toList(),
+          ...ddays.map(
+            (dday) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildDDayCard(dday),
+            ),
+          ),
           // 디데이 추가하기 버튼 (카드 바로 아래)
           _buildAddButton(),
           const SizedBox(height: 40), // 여유 공간
@@ -262,10 +368,10 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: colors.outline.withOpacity(0.4)),
+        border: Border.all(color: colors.outline.withValues(alpha: 0.4)),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).shadowColor.withOpacity(0.12),
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.12),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -294,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       rangeText,
                       style: textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w500,
-                        color: colors.onSurface.withOpacity(0.6),
+                        color: colors.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -312,7 +418,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         minHeight: 40,
                       ),
                       decoration: BoxDecoration(
-                        color: colors.surfaceVariant,
+                        color: colors.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
@@ -366,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   '오늘까지 ${dday.burnedDays}일 지나갔어요',
                   style: textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: colors.onSurface.withOpacity(0.75),
+                    color: colors.onSurface.withValues(alpha: 0.75),
                   ),
                 ),
               ),
@@ -396,10 +502,10 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: colors.outline.withOpacity(0.6)),
+          border: Border.all(color: colors.outline.withValues(alpha: 0.6)),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).shadowColor.withOpacity(0.08),
+              color: Theme.of(context).shadowColor.withValues(alpha: 0.08),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -448,13 +554,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return Stack(
           children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.pop(context),
+                child: const SizedBox.shrink(),
+              ),
+            ),
             BackdropFilter(
               filter: ImageFilter.blur(
                 sigmaX: 5 * animation.value,
                 sigmaY: 5 * animation.value,
               ),
               child: Container(
-                color: colors.scrim.withOpacity(0.3 * animation.value),
+                color: colors.scrim.withValues(
+                  alpha: 0.3 * animation.value,
+                ),
               ),
             ),
             FadeTransition(
@@ -465,117 +580,123 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Center(
                   child: Material(
                     type: MaterialType.transparency,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 40),
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                Theme.of(context).shadowColor.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: colors.errorContainer,
-                              shape: BoxShape.circle,
+                    child: GestureDetector(
+                      onTap: () {},
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 40),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context)
+                                  .shadowColor
+                                  .withValues(alpha: 0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
                             ),
-                            child: Icon(
-                              Icons.warning_rounded,
-                              size: 36,
-                              color: colors.error,
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: colors.errorContainer,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.warning_rounded,
+                                size: 36,
+                                color: colors.error,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            '디데이 삭제',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: colors.onSurface,
-                                ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '정말로 "${dday.name}"을(를) 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: colors.onSurface.withOpacity(0.7),
-                              height: 1.4,
-                              decoration: TextDecoration.none,
+                            const SizedBox(height: 14),
+                            Text(
+                              '디데이 삭제',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.onSurface,
+                                  ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
+                            const SizedBox(height: 8),
+                            Text(
+                              '정말로 "${dday.name}"을(를) 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: colors.onSurface.withValues(alpha: 0.7),
+                                height: 1.4,
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        side: BorderSide(
+                                          color: colors.outline.withValues(
+                                            alpha: 0.6,
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      side: BorderSide(
-                                        color: colors.outline.withOpacity(0.6),
+                                    child: Text(
+                                      '취소',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: colors.onSurface,
                                       ),
                                     ),
                                   ),
-                                  child: Text(
-                                    '취소',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: colors.onSurface,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      context
+                                          .read<DDayProvider>()
+                                          .deleteDDay(dday);
+                                      Navigator.pop(context);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: colors.error,
+                                      foregroundColor: colors.onError,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      '삭제',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    context
-                                        .read<DDayProvider>()
-                                        .deleteDDay(dday);
-                                    Navigator.pop(context);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: colors.error,
-                                    foregroundColor: colors.onError,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    '삭제',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -598,8 +719,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final totalDots = dday.totalDays;
     final todayIndex = dday.todayIndex;
     const double spacing = 3.0;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final availableWidth = screenWidth - 48 - 40;
     double dotSize = 7.0;
 
     if (totalDots > 365) {
@@ -619,7 +738,7 @@ class _HomeScreenState extends State<HomeScreen> {
         } else if (isToday) {
           dotColor = todayColor;
         } else {
-          dotColor = colors.outline.withOpacity(0.7);
+          dotColor = colors.outline.withValues(alpha: 0.7);
         }
 
         return Container(
@@ -648,7 +767,7 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: colors.primary.withOpacity(0.3),
+              color: colors.primary.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

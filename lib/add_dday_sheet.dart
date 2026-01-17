@@ -59,30 +59,15 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
 
   /// 날짜 선택기 표시
   Future<void> _selectDate(bool isStartDate) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final initialDate = isStartDate ? _startDate : _endDate;
     final firstDate = DateTime(2000);
     final lastDate = DateTime(2100);
-    final colors = Theme.of(context).colorScheme;
 
-    final picked = await showDatePicker(
-      context: context,
+    final picked = await _showCustomDatePicker(
       initialDate: initialDate,
       firstDate: firstDate,
       lastDate: lastDate,
-      locale: const Locale('ko', 'KR'),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: colors.primary,
-                  onPrimary: colors.onPrimary,
-                  surface: colors.surface,
-                  onSurface: colors.onSurface,
-                ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -102,6 +87,24 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
         }
       });
     }
+  }
+
+  Future<DateTime?> _showCustomDatePicker({
+    required DateTime initialDate,
+    required DateTime firstDate,
+    required DateTime lastDate,
+  }) {
+    return showDialog<DateTime>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      builder: (dialogContext) {
+        return _CalendarDialog(
+          initialDate: initialDate,
+          firstDate: firstDate,
+          lastDate: lastDate,
+        );
+      },
+    );
   }
 
   /// 저장 버튼 클릭 처리
@@ -143,13 +146,12 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
     } else {
       await provider.saveDDay(dday);
     }
+    if (!mounted) return;
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    // 키보드 높이 고려
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final ddayProvider = context.watch<DDayProvider>();
@@ -157,228 +159,654 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
     final selectedIndex = _tempPresetIndex;
     final selectedTodayColor = presets[selectedIndex]['today']!;
     final selectedOnColor = _contrastOn(selectedTodayColor);
+    final days = _totalDays;
+    final isValidDays = days > 0;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
+    final content = _SheetContent(
+      isEditing: widget.existingDDay != null,
+      nameController: _nameController,
+      nameError: _nameError,
+      dateError: _dateError,
+      startDateLabel: _isToday(_startDate) ? '오늘' : _formatDate(_startDate),
+      endDateLabel: _isToday(_endDate) ? '오늘' : _formatDate(_endDate),
+      onTapStartDate: () => _selectDate(true),
+      onTapEndDate: () => _selectDate(false),
+      colors: colors,
+      textTheme: textTheme,
+      presets: presets,
+      selectedIndex: selectedIndex,
+      onSelectPreset: (index) => setState(() => _tempPresetIndex = index),
+      totalDays: days,
+      isValidDays: isValidDays,
+      selectedTodayColor: selectedTodayColor,
+      selectedOnColor: selectedOnColor,
+      onSave: _onSave,
+    );
+
+    return _BottomInsetPadding(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+        child: content,
+      ),
+    );
+  }
+
+  /// 총 기간 계산
+  int get _totalDays => _endDate.difference(_startDate).inDays + 1;
+}
+
+class _CalendarDialog extends StatefulWidget {
+  final DateTime initialDate;
+  final DateTime firstDate;
+  final DateTime lastDate;
+
+  const _CalendarDialog({
+    required this.initialDate,
+    required this.firstDate,
+    required this.lastDate,
+  });
+
+  @override
+  State<_CalendarDialog> createState() => _CalendarDialogState();
+}
+
+class _CalendarDialogState extends State<_CalendarDialog> {
+  static const List<String> _weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+
+  late DateTime _visibleMonth;
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = _normalize(widget.initialDate);
+    _visibleMonth = DateTime(_selectedDate.year, _selectedDate.month);
+  }
+
+  DateTime _normalize(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  int _daysInMonth(DateTime month) {
+    final beginningNextMonth = DateTime(month.year, month.month + 1, 1);
+    return beginningNextMonth.subtract(const Duration(days: 1)).day;
+  }
+
+  bool _isDisabled(DateTime date) {
+    return date.isBefore(_normalize(widget.firstDate)) ||
+        date.isAfter(_normalize(widget.lastDate));
+  }
+
+  void _goToPreviousMonth() {
+    setState(() {
+      _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month - 1);
+    });
+  }
+
+  void _goToNextMonth() {
+    setState(() {
+      _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + 1);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final daysInMonth = _daysInMonth(_visibleMonth);
+    final firstWeekday =
+        DateTime(_visibleMonth.year, _visibleMonth.month, 1).weekday;
+    final leadingEmpty = firstWeekday - 1;
+    const totalCells = 42;
+    final today = _normalize(DateTime.now());
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      backgroundColor: colors.surface,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 22),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 그랩 핸들
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+            _buildHeader(colors, textTheme),
+            const SizedBox(height: 12),
+            _buildWeekdays(colors, textTheme),
+            const SizedBox(height: 10),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (child, animation) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              child: _buildCalendarGrid(
+                key: ValueKey('${_visibleMonth.year}-${_visibleMonth.month}'),
+                colors: colors,
+                textTheme: textTheme,
+                daysInMonth: daysInMonth,
+                leadingEmpty: leadingEmpty,
+                totalCells: totalCells,
+                today: today,
               ),
             ),
-            const SizedBox(height: 24),
-            // 타이틀
-            Text(
-              widget.existingDDay != null ? '디데이 다듬기' : '새 디데이',
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: colors.onSurface,
-              ),
-            ),
-            const SizedBox(height: 28),
-            // 이름 입력 필드
-            Container(
-              decoration: BoxDecoration(
-                color: colors.surfaceVariant,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  hintText: '예: 수능, 첫 공연, 이사, 전역일',
-                  hintStyle: TextStyle(
-                    color: colors.onSurfaceVariant.withOpacity(0.6),
-                    fontSize: 16,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                  border: InputBorder.none,
-                ),
-                cursorColor: colors.primary,
-                style: textTheme.bodyLarge?.copyWith(
-                  color: colors.onSurface,
-                ),
-              ),
-            ),
-            // 이름 에러 메시지 표시
-            if (_nameError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8, left: 4),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _nameError!,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colors.error,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            const SizedBox(height: 16),
-            // 날짜 선택 컨테이너
-            Container(
-              decoration: BoxDecoration(
-                color: colors.surfaceVariant,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  // 시작일 선택
-                  _buildDateRow(
-                    label: '시작일',
-                    date: _startDate,
-                    onTap: () => _selectDate(true),
-                    showDivider: true,
-                    accentColor: colors.onSurface,
-                  ),
-                  // 마감일 선택
-                  _buildDateRow(
-                    label: '마감일',
-                    date: _endDate,
-                    onTap: () => _selectDate(false),
-                    showDivider: false,
-                    accentColor: colors.onSurface,
-                  ),
-                ],
-              ),
-            ),
-            // 날짜 에러 메시지 표시
-            if (_dateError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8, left: 4),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _dateError!,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colors.error,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            const SizedBox(height: 16),
-            // 총 기간 표시 컨테이너
-            _buildDurationInfo(
-              accentColor: colors.onSurface,
-              highlightColor: selectedTodayColor,
-              backgroundColor: colors.surfaceVariant,
-            ),
-            const SizedBox(height: 32),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '색감 선택',
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colors.onSurface,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                alignment: WrapAlignment.center,
-                children: List.generate(presets.length, (index) {
-                  final pastColor = presets[index]['past']!;
-                  final itemTodayColor = presets[index]['today']!;
-                  final isSelected = index == selectedIndex;
-                  final checkColor = _contrastOn(itemTodayColor);
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _tempPresetIndex = index;
-                      });
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOut,
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [pastColor, itemTodayColor],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: itemTodayColor.withOpacity(0.4),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: isSelected
-                          ? Icon(
-                              Icons.check_rounded,
-                              color: checkColor,
-                              size: 24,
-                            )
-                          : null,
-                    ),
-                  );
-                }),
-              ),
-            ),
-            const SizedBox(height: 40),
-            // 저장 버튼
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _onSave,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: selectedTodayColor,
-                  foregroundColor: selectedOnColor,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: Text(
-                  widget.existingDDay != null ? '변경 저장' : '저장하기',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: selectedOnColor,
-                  ),
-                ),
-              ),
-            ),
+            const SizedBox(height: 18),
+            _buildActions(colors),
           ],
         ),
       ),
     );
   }
 
-  /// 날짜 선택 Row 위젯
-  Widget _buildDateRow({
-    required String label,
-    required DateTime date,
-    required VoidCallback onTap,
-    required bool showDivider,
-    required Color accentColor,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+  Widget _buildHeader(ColorScheme colors, TextTheme textTheme) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${_visibleMonth.year}년 ${_visibleMonth.month}월',
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+                color: colors.onSurface,
+              ),
+            ),
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: _goToPreviousMonth,
+              icon: const Icon(Icons.chevron_left_rounded),
+              color: colors.onSurface,
+              iconSize: 20,
+              visualDensity: VisualDensity.compact,
+              splashRadius: 20,
+            ),
+            IconButton(
+              onPressed: _goToNextMonth,
+              icon: const Icon(Icons.chevron_right_rounded),
+              color: colors.onSurface,
+              iconSize: 20,
+              visualDensity: VisualDensity.compact,
+              splashRadius: 20,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
+  Widget _buildWeekdays(ColorScheme colors, TextTheme textTheme) {
+    return Row(
+      children: _weekdays
+          .map(
+            (day) => Expanded(
+              child: Center(
+                child: Text(
+                  day,
+                  style: textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface.withValues(alpha: 0.4),
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Widget _buildCalendarGrid({
+    required Key key,
+    required ColorScheme colors,
+    required TextTheme textTheme,
+    required int daysInMonth,
+    required int leadingEmpty,
+    required int totalCells,
+    required DateTime today,
+  }) {
+    return GridView.builder(
+      key: key,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+      ),
+      itemCount: totalCells,
+      itemBuilder: (context, index) {
+        final dayNumber = index - leadingEmpty + 1;
+        if (dayNumber < 1 || dayNumber > daysInMonth) {
+          return const SizedBox.shrink();
+        }
+
+        final date = DateTime(
+          _visibleMonth.year,
+          _visibleMonth.month,
+          dayNumber,
+        );
+        final normalized = _normalize(date);
+        final isSelected = normalized == _selectedDate;
+        final isToday = normalized == today;
+        final disabled = _isDisabled(normalized);
+
+        final backgroundColor =
+            isSelected ? colors.primary : Colors.transparent;
+        final textColor = isSelected
+            ? colors.onPrimary
+            : disabled
+                ? colors.onSurface.withValues(alpha: 0.25)
+                : colors.onSurface;
+        final borderColor = isToday && !isSelected
+            ? colors.primary.withValues(alpha: 0.5)
+            : Colors.transparent;
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: disabled
+                ? null
+                : () {
+                    setState(() {
+                      _selectedDate = normalized;
+                    });
+                  },
+            splashColor: colors.primary.withValues(alpha: 0.12),
+            highlightColor: colors.primary.withValues(alpha: 0.08),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOut,
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: borderColor),
+              ),
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$dayNumber',
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                  if (isToday && !isSelected)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActions(ColorScheme colors) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(
+                  color: colors.outline.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+            child: Text(
+              '취소',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton(
+            onPressed: () => Navigator.pop(context, _selectedDate),
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: const Text(
+              '확인',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BottomInsetPadding extends StatelessWidget {
+  final Widget child;
+
+  const _BottomInsetPadding({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return AnimatedPadding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      child: child,
+    );
+  }
+}
+
+class _SheetContent extends StatelessWidget {
+  final bool isEditing;
+  final TextEditingController nameController;
+  final String? nameError;
+  final String? dateError;
+  final String startDateLabel;
+  final String endDateLabel;
+  final VoidCallback onTapStartDate;
+  final VoidCallback onTapEndDate;
+  final ColorScheme colors;
+  final TextTheme textTheme;
+  final List<Map<String, Color>> presets;
+  final int selectedIndex;
+  final ValueChanged<int> onSelectPreset;
+  final int totalDays;
+  final bool isValidDays;
+  final Color selectedTodayColor;
+  final Color selectedOnColor;
+  final VoidCallback onSave;
+
+  const _SheetContent({
+    required this.isEditing,
+    required this.nameController,
+    required this.nameError,
+    required this.dateError,
+    required this.startDateLabel,
+    required this.endDateLabel,
+    required this.onTapStartDate,
+    required this.onTapEndDate,
+    required this.colors,
+    required this.textTheme,
+    required this.presets,
+    required this.selectedIndex,
+    required this.onSelectPreset,
+    required this.totalDays,
+    required this.isValidDays,
+    required this.selectedTodayColor,
+    required this.selectedOnColor,
+    required this.onSave,
+  });
+
+  Color _contrastOn(Color color) {
+    return color.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const _SheetGrabber(),
+        const SizedBox(height: 24),
+        _SheetHeader(
+          title: isEditing ? '디데이 다듬기' : '새 디데이',
+          colors: colors,
+          textTheme: textTheme,
+        ),
+        const SizedBox(height: 28),
+        _NameFieldSection(
+          controller: nameController,
+          colors: colors,
+          textTheme: textTheme,
+        ),
+        if (nameError != null)
+          _InlineErrorText(
+              message: nameError!, colors: colors, textTheme: textTheme),
+        const SizedBox(height: 16),
+        _DateSection(
+          colors: colors,
+          textTheme: textTheme,
+          startDateLabel: startDateLabel,
+          endDateLabel: endDateLabel,
+          onTapStartDate: onTapStartDate,
+          onTapEndDate: onTapEndDate,
+        ),
+        if (dateError != null)
+          _InlineErrorText(
+              message: dateError!, colors: colors, textTheme: textTheme),
+        const SizedBox(height: 16),
+        _DurationInfo(
+          totalDays: totalDays,
+          isValid: isValidDays,
+          colors: colors,
+          textTheme: textTheme,
+          highlightColor: selectedTodayColor,
+        ),
+        const SizedBox(height: 32),
+        _ColorPickerSection(
+          colors: colors,
+          textTheme: textTheme,
+          presets: presets,
+          selectedIndex: selectedIndex,
+          onSelectPreset: onSelectPreset,
+          contrastOn: _contrastOn,
+        ),
+        const SizedBox(height: 40),
+        _SaveButton(
+          isEditing: isEditing,
+          colors: colors,
+          textTheme: textTheme,
+          selectedTodayColor: selectedTodayColor,
+          selectedOnColor: selectedOnColor,
+          onSave: onSave,
+        ),
+      ],
+    );
+  }
+}
+
+class _SheetGrabber extends StatelessWidget {
+  const _SheetGrabber();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 4,
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
+}
+
+class _SheetHeader extends StatelessWidget {
+  final String title;
+  final ColorScheme colors;
+  final TextTheme textTheme;
+
+  const _SheetHeader({
+    required this.title,
+    required this.colors,
+    required this.textTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: textTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: colors.onSurface,
+      ),
+    );
+  }
+}
+
+class _NameFieldSection extends StatelessWidget {
+  final TextEditingController controller;
+  final ColorScheme colors;
+  final TextTheme textTheme;
+
+  const _NameFieldSection({
+    required this.controller,
+    required this.colors,
+    required this.textTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          hintText: '예: 수능, 첫 공연, 이사, 전역일',
+          hintStyle: TextStyle(
+            color: colors.onSurfaceVariant.withValues(alpha: 0.6),
+            fontSize: 16,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+          border: InputBorder.none,
+        ),
+        cursorColor: colors.primary,
+        style: textTheme.bodyLarge?.copyWith(
+          color: colors.onSurface,
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineErrorText extends StatelessWidget {
+  final String message;
+  final ColorScheme colors;
+  final TextTheme textTheme;
+
+  const _InlineErrorText({
+    required this.message,
+    required this.colors,
+    required this.textTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, left: 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          message,
+          style: textTheme.bodySmall?.copyWith(
+            color: colors.error,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DateSection extends StatelessWidget {
+  final ColorScheme colors;
+  final TextTheme textTheme;
+  final String startDateLabel;
+  final String endDateLabel;
+  final VoidCallback onTapStartDate;
+  final VoidCallback onTapEndDate;
+
+  const _DateSection({
+    required this.colors,
+    required this.textTheme,
+    required this.startDateLabel,
+    required this.endDateLabel,
+    required this.onTapStartDate,
+    required this.onTapEndDate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          _DateRow(
+            label: '시작일',
+            dateLabel: startDateLabel,
+            onTap: onTapStartDate,
+            showDivider: true,
+            colors: colors,
+            textTheme: textTheme,
+          ),
+          _DateRow(
+            label: '마감일',
+            dateLabel: endDateLabel,
+            onTap: onTapEndDate,
+            showDivider: false,
+            colors: colors,
+            textTheme: textTheme,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DateRow extends StatelessWidget {
+  final String label;
+  final String dateLabel;
+  final VoidCallback onTap;
+  final bool showDivider;
+  final ColorScheme colors;
+  final TextTheme textTheme;
+
+  const _DateRow({
+    required this.label,
+    required this.dateLabel,
+    required this.onTap,
+    required this.showDivider,
+    required this.colors,
+    required this.textTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
         InkWell(
@@ -401,17 +829,17 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                 Row(
                   children: [
                     Text(
-                      _isToday(date) ? '오늘' : _formatDate(date),
+                      dateLabel,
                       style: TextStyle(
                         fontSize: 16,
-                        color: accentColor,
+                        color: colors.onSurface,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(width: 4),
                     Icon(
                       Icons.chevron_right,
-                      color: accentColor,
+                      color: colors.onSurface,
                       size: 24,
                     ),
                   ],
@@ -425,33 +853,35 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
             height: 1,
             indent: 16,
             endIndent: 16,
-            color: colors.outline.withOpacity(0.6),
+            color: colors.outline.withValues(alpha: 0.6),
           ),
       ],
     );
   }
+}
 
-  /// 총 기간 계산
-  int get _totalDays {
-    return _endDate.difference(_startDate).inDays + 1;
-  }
+class _DurationInfo extends StatelessWidget {
+  final int totalDays;
+  final bool isValid;
+  final ColorScheme colors;
+  final TextTheme textTheme;
+  final Color highlightColor;
 
-  /// 총 기간 표시 위젯
-  Widget _buildDurationInfo({
-    required Color accentColor,
-    required Color highlightColor,
-    required Color backgroundColor,
-  }) {
-    final days = _totalDays;
-    final isValid = days > 0;
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+  const _DurationInfo({
+    required this.totalDays,
+    required this.isValid,
+    required this.colors,
+    required this.textTheme,
+    required this.highlightColor,
+  });
 
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
-        color: isValid ? backgroundColor : colors.errorContainer,
+        color: isValid ? colors.surfaceContainerHighest : colors.errorContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -460,19 +890,20 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
           Icon(
             Icons.calendar_today_rounded,
             size: 20,
-            color: isValid ? accentColor : colors.error,
+            color: isValid ? colors.onSurface : colors.error,
           ),
           const SizedBox(width: 10),
           RichText(
             text: TextSpan(
               style: textTheme.bodyLarge?.copyWith(
-                color:
-                    isValid ? colors.onSurface.withOpacity(0.8) : colors.error,
+                color: isValid
+                    ? colors.onSurface.withValues(alpha: 0.8)
+                    : colors.error,
               ),
               children: [
                 const TextSpan(text: '총 '),
                 TextSpan(
-                  text: isValid ? '$days' : '0',
+                  text: isValid ? '$totalDays' : '0',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
@@ -484,6 +915,159 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ColorPickerSection extends StatelessWidget {
+  final ColorScheme colors;
+  final TextTheme textTheme;
+  final List<Map<String, Color>> presets;
+  final int selectedIndex;
+  final ValueChanged<int> onSelectPreset;
+  final Color Function(Color) contrastOn;
+
+  const _ColorPickerSection({
+    required this.colors,
+    required this.textTheme,
+    required this.presets,
+    required this.selectedIndex,
+    required this.onSelectPreset,
+    required this.contrastOn,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '색감 선택',
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: colors.onSurface,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Center(
+          child: Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            alignment: WrapAlignment.center,
+            children: List.generate(presets.length, (index) {
+              final pastColor = presets[index]['past']!;
+              final itemTodayColor = presets[index]['today']!;
+              final isSelected = index == selectedIndex;
+              final checkColor = contrastOn(itemTodayColor);
+
+              return _ColorPresetItem(
+                pastColor: pastColor,
+                todayColor: itemTodayColor,
+                isSelected: isSelected,
+                checkColor: checkColor,
+                onTap: () => onSelectPreset(index),
+              );
+            }),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ColorPresetItem extends StatelessWidget {
+  final Color pastColor;
+  final Color todayColor;
+  final bool isSelected;
+  final Color checkColor;
+  final VoidCallback onTap;
+
+  const _ColorPresetItem({
+    required this.pastColor,
+    required this.todayColor,
+    required this.isSelected,
+    required this.checkColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [pastColor, todayColor],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: todayColor.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
+        ),
+        child: isSelected
+            ? Icon(
+                Icons.check_rounded,
+                color: checkColor,
+                size: 24,
+              )
+            : null,
+      ),
+    );
+  }
+}
+
+class _SaveButton extends StatelessWidget {
+  final bool isEditing;
+  final ColorScheme colors;
+  final TextTheme textTheme;
+  final Color selectedTodayColor;
+  final Color selectedOnColor;
+  final VoidCallback onSave;
+
+  const _SaveButton({
+    required this.isEditing,
+    required this.colors,
+    required this.textTheme,
+    required this.selectedTodayColor,
+    required this.selectedOnColor,
+    required this.onSave,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: onSave,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: selectedTodayColor,
+          foregroundColor: selectedOnColor,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Text(
+          isEditing ? '변경 저장' : '저장하기',
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: selectedOnColor,
+          ),
+        ),
       ),
     );
   }
