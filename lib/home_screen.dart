@@ -372,7 +372,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           _buildDotMatrix(dday, pastColor: pastColor, todayColor: todayColor),
         ],
       ),
@@ -597,14 +597,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final colors = Theme.of(context).colorScheme;
     final totalDots = dday.totalDays;
     final todayIndex = dday.todayIndex;
-    const double spacing = 4.0;
+    const double spacing = 3.0;
     final screenWidth = MediaQuery.of(context).size.width;
     final availableWidth = screenWidth - 48 - 40;
-    double dotSize = 8.0;
+    double dotSize = 7.0;
 
     if (totalDots > 365) {
       final scale = totalDots / 365;
-      dotSize = (8.0 / scale).clamp(4.0, 8.0);
+      dotSize = (7.0 / scale).clamp(3.5, 7.0);
     }
 
     return Wrap(

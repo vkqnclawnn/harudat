@@ -125,6 +125,7 @@ class DDayProvider extends ChangeNotifier {
   /// D-Day 저장 (새 항목 추가)
   Future<void> saveDDay(DDayModel dday) async {
     await _box.add(dday);
+    await _box.flush();
     _ddays = _box.values.toList();
     _selectedPresetIndex =
         dday.colorIndex.clamp(0, _dotColorPresets.length - 1).toInt();
@@ -144,6 +145,7 @@ class DDayProvider extends ChangeNotifier {
         await _box.add(updated);
       }
     }
+    await _box.flush();
     _ddays = _box.values.toList();
     _selectedPresetIndex =
         updated.colorIndex.clamp(0, _dotColorPresets.length - 1).toInt();
@@ -161,6 +163,7 @@ class DDayProvider extends ChangeNotifier {
         await _box.deleteAt(index);
       }
     }
+    await _box.flush();
     _ddays = _box.values.toList();
     _selectedPresetIndex = _ddays.isNotEmpty
         ? (_ddays.last.colorIndex).clamp(0, _dotColorPresets.length - 1).toInt()
