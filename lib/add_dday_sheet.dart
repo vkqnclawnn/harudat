@@ -17,6 +17,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
   late DateTime _startDate;
   late DateTime _endDate;
   late int _tempPresetIndex;
+  late bool _isWidgetDark;
   String? _nameError; // 이름 에러 메시지
   String? _dateError; // 날짜 에러 메시지
 
@@ -36,6 +37,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
         DateTime.now().add(const Duration(days: 30));
     _tempPresetIndex = widget.existingDDay?.colorIndex ??
         context.read<DDayProvider>().selectedPresetIndex;
+    _isWidgetDark = widget.existingDDay?.isWidgetDark ?? true;
   }
 
   @override
@@ -139,6 +141,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
       startDate: _startDate,
       endDate: _endDate,
       colorIndex: _tempPresetIndex,
+      isWidgetDark: _isWidgetDark,
     );
 
     if (widget.existingDDay != null) {
@@ -147,7 +150,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
       await provider.saveDDay(dday);
     }
     if (!mounted) return;
-    Navigator.pop(context);
+    Navigator.pop(context, dday);
   }
 
   @override
@@ -176,6 +179,8 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
       presets: presets,
       selectedIndex: selectedIndex,
       onSelectPreset: (index) => setState(() => _tempPresetIndex = index),
+      isWidgetDark: _isWidgetDark,
+      onWidgetThemeChanged: (value) => setState(() => _isWidgetDark = value),
       totalDays: days,
       isValidDays: isValidDays,
       selectedTodayColor: selectedTodayColor,
@@ -536,6 +541,8 @@ class _SheetContent extends StatelessWidget {
   final List<Map<String, Color>> presets;
   final int selectedIndex;
   final ValueChanged<int> onSelectPreset;
+  final bool isWidgetDark;
+  final ValueChanged<bool> onWidgetThemeChanged;
   final int totalDays;
   final bool isValidDays;
   final Color selectedTodayColor;
@@ -556,6 +563,8 @@ class _SheetContent extends StatelessWidget {
     required this.presets,
     required this.selectedIndex,
     required this.onSelectPreset,
+    required this.isWidgetDark,
+    required this.onWidgetThemeChanged,
     required this.totalDays,
     required this.isValidDays,
     required this.selectedTodayColor,
@@ -617,7 +626,14 @@ class _SheetContent extends StatelessWidget {
           onSelectPreset: onSelectPreset,
           contrastOn: _contrastOn,
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 28),
+        _WidgetBackgroundToggle(
+          colors: colors,
+          textTheme: textTheme,
+          isWidgetDark: isWidgetDark,
+          onChanged: onWidgetThemeChanged,
+        ),
+        const SizedBox(height: 36),
         _SaveButton(
           isEditing: isEditing,
           colors: colors,
@@ -1024,6 +1040,128 @@ class _ColorPresetItem extends StatelessWidget {
                 size: 24,
               )
             : null,
+      ),
+    );
+  }
+}
+
+class _WidgetBackgroundToggle extends StatelessWidget {
+  final ColorScheme colors;
+  final TextTheme textTheme;
+  final bool isWidgetDark;
+  final ValueChanged<bool> onChanged;
+
+  const _WidgetBackgroundToggle({
+    required this.colors,
+    required this.textTheme,
+    required this.isWidgetDark,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '위젯 배경',
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: colors.onSurface,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _WidgetOptionCard(
+                label: '다크',
+                isSelected: isWidgetDark,
+                background: Colors.black,
+                foreground: Colors.white,
+                colors: colors,
+                onTap: () => onChanged(true),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _WidgetOptionCard(
+                label: '라이트',
+                isSelected: !isWidgetDark,
+                background: Colors.white,
+                foreground: Colors.black,
+                colors: colors,
+                onTap: () => onChanged(false),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _WidgetOptionCard extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final Color background;
+  final Color foreground;
+  final ColorScheme colors;
+  final VoidCallback onTap;
+
+  const _WidgetOptionCard({
+    required this.label,
+    required this.isSelected,
+    required this.background,
+    required this.foreground,
+    required this.colors,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? background
+              : colors.surfaceContainerHighest.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? foreground : colors.outline,
+            width: isSelected ? 1.6 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                color: background,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? foreground : colors.outline,
+                  width: 1,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? foreground : colors.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

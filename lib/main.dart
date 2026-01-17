@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'dday_model.dart';
 import 'home_screen.dart';
+import 'services/home_widget_service.dart';
 import 'theme_provider.dart';
 
 void main() async {
@@ -24,6 +25,8 @@ void main() async {
   // 첫 프레임 전에 셰이더를 미리 준비
   WidgetsBinding.instance.scheduleWarmUpFrame();
   WidgetsBinding.instance.allowFirstFrame();
+
+  await HomeWidgetService.updateFromStorage();
 }
 
 class _HaruShaderWarmUp extends ShaderWarmUp {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dday_model.dart';
 import 'add_dday_sheet.dart';
+import 'services/home_widget_service.dart';
 import 'theme_provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -115,9 +116,9 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   /// BottomSheet 표시
-  void _showAddDDaySheet({DDayModel? existingDDay}) {
+  Future<void> _showAddDDaySheet({DDayModel? existingDDay}) async {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    final result = await showModalBottomSheet<DDayModel?>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -145,6 +146,11 @@ class _HomeScreenState extends State<HomeScreen>
         );
       },
     );
+
+    if (!mounted) return;
+    if (result != null) {
+      await HomeWidgetService.updateHomeWidget(result);
+    }
   }
 
   @override
@@ -722,11 +728,25 @@ class _HomeScreenState extends State<HomeScreen>
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: () {
-                                      context
-                                          .read<DDayProvider>()
-                                          .deleteDDay(dday);
-                                      Navigator.pop(context);
+                                    onPressed: () async {
+                                      final provider =
+                                          context.read<DDayProvider>();
+                                      await provider.deleteDDay(dday);
+                                      if (!mounted) return;
+
+                                      if (provider.ddayList.isNotEmpty) {
+                                        await HomeWidgetService
+                                            .updateHomeWidget(
+                                          provider.ddayList.last,
+                                        );
+                                      } else {
+                                        await HomeWidgetService
+                                            .clearHomeWidget();
+                                      }
+
+                                      if (mounted) {
+                                        Navigator.pop(context);
+                                      }
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: colors.error,
