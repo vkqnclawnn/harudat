@@ -57,9 +57,17 @@ class MiniWidgetProvider : HomeWidgetProvider() {
     }
     val json = resolveWidgetJson(context, widgetData)
     val data = HaruDotData.fromJson(json)
+    val versionKey = json?.hashCode()?.toString() ?: System.currentTimeMillis().toString()
     Log.d(TAG, "MiniWidget size=${widthPx}x${heightPx}, hasData=${data != null}, jsonLen=${json?.length ?: 0}")
     val bitmap = DotMatrixDrawer.drawMiniWidget(context, widthPx, heightPx, data)
-    setImageWithIpcGuard(context, views, R.id.widget_image_mini, bitmap, "widget_mini_$appWidgetId")
+    cleanupCache(context, "widget_mini_${appWidgetId}_")
+    setImageWithIpcGuard(
+      context,
+      views,
+      R.id.widget_image_mini,
+      bitmap,
+      "widget_mini_${appWidgetId}_$versionKey"
+    )
     appWidgetManager.updateAppWidget(appWidgetId, views)
   }
 
@@ -185,6 +193,15 @@ class MiniWidgetProvider : HomeWidgetProvider() {
     return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
   }
 
+  private fun cleanupCache(context: Context, prefix: String) {
+    val files = context.cacheDir.listFiles { file ->
+      file.name.startsWith(prefix) && file.name.endsWith(".png")
+    } ?: return
+    files.sortedByDescending { it.lastModified() }
+      .drop(MAX_CACHED_FILES)
+      .forEach { it.delete() }
+  }
+
   private fun scheduleDebouncedUpdate(
     context: Context,
     appWidgetManager: AppWidgetManager,
@@ -209,6 +226,7 @@ class MiniWidgetProvider : HomeWidgetProvider() {
     private const val TAG = "HaruDotWidget"
     private const val WIDGET_JSON_KEY = "dday_json"
     private const val CACHE_PREFS = "harudot_widget_cache"
+    private const val MAX_CACHED_FILES = 2
     private val handler = Handler(Looper.getMainLooper())
     private val pendingUpdates = mutableMapOf<Int, Runnable>()
   }
