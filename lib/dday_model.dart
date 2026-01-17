@@ -24,7 +24,7 @@ class DDayModel extends HiveObject {
   int colorIndex;
 
   /// 위젯 배경 (true = 다크)
-  @HiveField(4)
+  @HiveField(4, defaultValue: true)
   bool isWidgetDark;
 
   DDayModel({

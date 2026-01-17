@@ -14,20 +14,23 @@ void main() async {
   PaintingBinding.shaderWarmUp = const _HaruShaderWarmUp();
   WidgetsBinding.instance.deferFirstFrame();
 
-  // Hive 초기화
-  await Hive.initFlutter();
+  try {
+    // Hive 초기화
+    await Hive.initFlutter();
 
-  // DDayModel 어댑터 등록
-  Hive.registerAdapter(DDayModelAdapter());
+    // DDayModel 어댑터 등록
+    Hive.registerAdapter(DDayModelAdapter());
 
-  final ddayProvider = DDayProvider();
-  await ddayProvider.init();
+    final ddayProvider = DDayProvider();
+    await ddayProvider.init();
 
-  runApp(HaruDotApp(ddayProvider: ddayProvider));
+    runApp(HaruDotApp(ddayProvider: ddayProvider));
 
-  // 첫 프레임 전에 셰이더를 미리 준비
-  WidgetsBinding.instance.scheduleWarmUpFrame();
-  WidgetsBinding.instance.allowFirstFrame();
+    // 첫 프레임 전에 셰이더를 미리 준비
+    WidgetsBinding.instance.scheduleWarmUpFrame();
+  } finally {
+    WidgetsBinding.instance.allowFirstFrame();
+  }
 
   await HomeWidgetService.updateFromStorage();
 }
