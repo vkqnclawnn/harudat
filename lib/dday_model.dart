@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
+import 'services/home_widget_service.dart';
+
 part 'dday_model.g.dart';
 
 /// D-Day 데이터 모델
@@ -154,6 +156,7 @@ class DDayProvider extends ChangeNotifier {
     _ddays = _box.values.toList();
     _selectedPresetIndex =
         dday.colorIndex.clamp(0, _dotColorPresets.length - 1).toInt();
+    await HomeWidgetService.updateHomeWidget(dday);
     notifyListeners();
   }
 
@@ -174,6 +177,7 @@ class DDayProvider extends ChangeNotifier {
     _ddays = _box.values.toList();
     _selectedPresetIndex =
         updated.colorIndex.clamp(0, _dotColorPresets.length - 1).toInt();
+    await HomeWidgetService.updateHomeWidget(updated);
     notifyListeners();
   }
 
@@ -193,6 +197,11 @@ class DDayProvider extends ChangeNotifier {
     _selectedPresetIndex = _ddays.isNotEmpty
         ? (_ddays.last.colorIndex).clamp(0, _dotColorPresets.length - 1).toInt()
         : 0;
+    if (_ddays.isEmpty) {
+      await HomeWidgetService.clearHomeWidget();
+    } else {
+      await HomeWidgetService.updateHomeWidget(_ddays.last);
+    }
     notifyListeners();
   }
 
