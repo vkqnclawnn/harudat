@@ -70,18 +70,17 @@ class MiniWidgetProvider : HomeWidgetProvider() {
     options: Bundle
   ): Pair<Int, Int> {
     val density = context.resources.displayMetrics.density
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    var minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+    var minHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (minWidthDp <= 0 || minHeightDp <= 0)) {
       val sizes = options.getParcelableArrayList<SizeF>(AppWidgetManager.OPTION_APPWIDGET_SIZES)
       if (!sizes.isNullOrEmpty()) {
         val best = sizes.maxBy { it.width * it.height }
-        return Pair(
-          (best.width * density).roundToInt().coerceAtLeast(1),
-          (best.height * density).roundToInt().coerceAtLeast(1)
-        )
+        minWidthDp = best.width.roundToInt().coerceAtLeast(1)
+        minHeightDp = best.height.roundToInt().coerceAtLeast(1)
       }
     }
-    var minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-    var minHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
 
     if (minWidthDp <= 0 || minHeightDp <= 0) {
       val info = appWidgetManager.getAppWidgetInfo(appWidgetId)
@@ -138,7 +137,10 @@ class MiniWidgetProvider : HomeWidgetProvider() {
 
   private fun resolveWidgetJson(context: Context, widgetData: SharedPreferences?): String? {
     val key = WIDGET_JSON_KEY
-    widgetData?.getString(key, null)?.let { return it }
+    widgetData?.getString(key, null)?.let {
+      saveCachedJson(context, it)
+      return it
+    }
 
     val candidates = listOf(
       context.getSharedPreferences("home_widget", Context.MODE_PRIVATE),
@@ -148,10 +150,25 @@ class MiniWidgetProvider : HomeWidgetProvider() {
 
     for (prefs in candidates) {
       val value = prefs.getString(key, null)
-      if (!value.isNullOrBlank()) return value
+      if (!value.isNullOrBlank()) {
+        saveCachedJson(context, value)
+        return value
+      }
     }
 
-    return null
+    return getCachedJson(context)
+  }
+
+  private fun saveCachedJson(context: Context, value: String) {
+    context.getSharedPreferences(CACHE_PREFS, Context.MODE_PRIVATE)
+      .edit()
+      .putString(WIDGET_JSON_KEY, value)
+      .apply()
+  }
+
+  private fun getCachedJson(context: Context): String? {
+    return context.getSharedPreferences(CACHE_PREFS, Context.MODE_PRIVATE)
+      .getString(WIDGET_JSON_KEY, null)
   }
 
   private fun resolveLauncherPackage(context: Context): String? {
@@ -191,6 +208,7 @@ class MiniWidgetProvider : HomeWidgetProvider() {
     private const val DEFAULT_HEIGHT_DP = 110
     private const val TAG = "HaruDotWidget"
     private const val WIDGET_JSON_KEY = "dday_json"
+    private const val CACHE_PREFS = "harudot_widget_cache"
     private val handler = Handler(Looper.getMainLooper())
     private val pendingUpdates = mutableMapOf<Int, Runnable>()
   }

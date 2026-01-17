@@ -163,11 +163,11 @@ object DotMatrixDrawer {
     if (totalDots <= 0 || availableWidth <= 0f || availableHeight <= 0f) return
 
     val dotSizePx = dpToPx(context, dotSizeDp)
-    val spacingPx = dpToPx(context, spacingDp)
+    val minSpacingPx = dpToPx(context, spacingDp)
     val radius = dotSizePx / 2f
 
-    val cols = max(1, floor((availableWidth + spacingPx) / (dotSizePx + spacingPx)).toInt())
-    val maxRows = max(1, floor((availableHeight + spacingPx) / (dotSizePx + spacingPx)).toInt())
+    val cols = max(1, floor((availableWidth + minSpacingPx) / (dotSizePx + minSpacingPx)).toInt())
+    val maxRows = max(1, floor((availableHeight + minSpacingPx) / (dotSizePx + minSpacingPx)).toInt())
     val maxDots = min(totalDots, cols * maxRows)
 
     val todayIndex = when {
@@ -179,6 +179,11 @@ object DotMatrixDrawer {
     val pastColor = applyAlpha(parseColorSafe(pastColorHex), pastAlpha)
     val todayColor = parseColorSafe(todayColorHex)
 
+    val spacingPx = if (cols > 1) {
+      ((availableWidth - (cols * dotSizePx)) / (cols - 1)).coerceAtLeast(0f)
+    } else {
+      0f
+    }
     val step = dotSizePx + spacingPx
     for (i in 0 until maxDots) {
       val row = i / cols
