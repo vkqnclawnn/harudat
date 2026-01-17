@@ -3,10 +3,12 @@ package com.vkqnclawnn.harudat
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetProvider
-import es.antonborri.home_widget.HomeWidgetUtils
+import java.io.File
 
 class HaruDotWidgetProvider : HomeWidgetProvider() {
   override fun onUpdate(
@@ -21,7 +23,7 @@ class HaruDotWidgetProvider : HomeWidgetProvider() {
       val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
       val imageKey = if (minHeight < 140) "widget_image_mini" else "widget_image_full"
 
-      val bitmap = HomeWidgetUtils.getWidgetBitmap(context, imageKey)
+      val bitmap = loadWidgetBitmap(context, imageKey)
       if (bitmap != null) {
         views.setImageViewBitmap(R.id.widget_image, bitmap)
       } else {
@@ -41,5 +43,24 @@ class HaruDotWidgetProvider : HomeWidgetProvider() {
     onUpdate(context, appWidgetManager, intArrayOf(appWidgetId),
       context.getSharedPreferences("home_widget", Context.MODE_PRIVATE)
     )
+  }
+
+  private fun loadWidgetBitmap(context: Context, key: String): Bitmap? {
+    val candidates = listOf(
+      File(context.cacheDir, "$key.png"),
+      File(context.filesDir, "$key.png"),
+      File(File(context.filesDir, "home_widget"), "$key.png"),
+      File(File(context.cacheDir, "home_widget"), "$key.png")
+    )
+
+    for (file in candidates) {
+      if (file.exists()) {
+        val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+        if (bitmap != null) {
+          return bitmap
+        }
+      }
+    }
+    return null
   }
 }

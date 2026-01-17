@@ -21,7 +21,7 @@ class DDayModelAdapter extends TypeAdapter<DDayModel> {
       startDate: fields[1] as DateTime,
       endDate: fields[2] as DateTime,
       colorIndex: fields[3] as int,
-      isWidgetDark: fields[4] as bool? ?? true,
+      isWidgetDark: fields[4] as bool,
     );
   }
 

@@ -731,8 +731,8 @@ class _HomeScreenState extends State<HomeScreen>
                                     onPressed: () async {
                                       final provider =
                                           context.read<DDayProvider>();
+                                      final navigator = Navigator.of(context);
                                       await provider.deleteDDay(dday);
-                                      if (!mounted) return;
 
                                       if (provider.ddayList.isNotEmpty) {
                                         await HomeWidgetService
@@ -744,9 +744,7 @@ class _HomeScreenState extends State<HomeScreen>
                                             .clearHomeWidget();
                                       }
 
-                                      if (mounted) {
-                                        Navigator.pop(context);
-                                      }
+                                      navigator.pop();
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: colors.error,
@@ -825,49 +823,6 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         );
       }),
-    );
-  }
-
-  /// FAB 위젯 (D-Day 없을 때만 사용)
-  Widget _buildFAB() {
-    final colors = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: () {
-        _showAddDDaySheet(); // 새로운 D-Day 추가
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        decoration: BoxDecoration(
-          color: colors.primary,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: colors.primary.withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '디데이 추가하기',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: colors.onPrimary,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Icon(
-              Icons.add,
-              size: 20,
-              color: colors.onPrimary,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

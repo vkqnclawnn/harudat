@@ -20,7 +20,10 @@ void main() async {
   // DDayModel 어댑터 등록
   Hive.registerAdapter(DDayModelAdapter());
 
-  runApp(const HaruDotApp());
+  final ddayProvider = DDayProvider();
+  await ddayProvider.init();
+
+  runApp(HaruDotApp(ddayProvider: ddayProvider));
 
   // 첫 프레임 전에 셰이더를 미리 준비
   WidgetsBinding.instance.scheduleWarmUpFrame();
@@ -74,7 +77,9 @@ class _HaruShaderWarmUp extends ShaderWarmUp {
 }
 
 class HaruDotApp extends StatelessWidget {
-  const HaruDotApp({super.key});
+  final DDayProvider ddayProvider;
+
+  const HaruDotApp({super.key, required this.ddayProvider});
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +104,7 @@ class HaruDotApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => DDayProvider()..init()),
+        ChangeNotifierProvider.value(value: ddayProvider),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
