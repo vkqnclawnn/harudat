@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dday_model.dart';
 import 'add_dday_sheet.dart';
+import 'theme_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,8 +13,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String _formatMonthDay(DateTime date) {
+    return '${date.month}.${date.day}';
+  }
+
   /// BottomSheet 표시
   void _showAddDDaySheet({DDayModel? existingDDay}) {
+    final colors = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -25,14 +31,15 @@ class _HomeScreenState extends State<HomeScreen> {
           filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
+              color: colors.scrim.withOpacity(0.3),
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               clipBehavior: Clip.hardEdge,
               child: AddDDaySheet(existingDDay: existingDDay),
@@ -48,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Consumer<DDayProvider>(
       builder: (context, provider, child) {
         return Scaffold(
-          backgroundColor: const Color(0xFFE5E5E5),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: provider.hasDDay
                 ? _buildActiveState(provider.dday!)
@@ -65,17 +72,43 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Empty State UI (데이터가 없는 경우)
   Widget _buildEmptyState() {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.themeMode == ThemeMode.dark;
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '나의 디데이',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '하루의 디데이',
+                  style: textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colors.onBackground,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => themeProvider.toggleTheme(),
+                icon: Icon(
+                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: colors.onBackground,
+                ),
+                tooltip: isDark ? '라이트 모드' : '다크 모드',
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '오늘부터 시작할 한 가지를 적어둬요.',
+            style: textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+              color: colors.onSurface.withOpacity(0.75),
             ),
           ),
           const SizedBox(height: 40),
@@ -87,13 +120,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding:
                     const EdgeInsets.symmetric(vertical: 60, horizontal: 40),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: colors.outline.withOpacity(0.4)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
+                      color: Theme.of(context).shadowColor.withOpacity(0.12),
+                      blurRadius: 14,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -107,27 +141,35 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           ImageFiltered(
                             imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                            child: const Icon(
+                            child: Icon(
                               Icons.hourglass_empty,
                               size: 48,
-                              color: Colors.black26,
+                              color: colors.onSurface.withOpacity(0.2),
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.hourglass_empty,
                             size: 48,
-                            color: Colors.black87,
+                            color: colors.onSurface,
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      '아직 추가된 디데이가 없습니다.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
+                    Text(
+                      '아직 기록된 디데이가 없어요.',
+                      style: textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface.withOpacity(0.8),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '예: 수능, 첫 공연, 이사, 전역일',
+                      style: textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w500,
+                        color: colors.onSurface.withOpacity(0.55),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -144,13 +186,49 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Active State UI (D-Day가 활성화된 경우)
   Widget _buildActiveState(DDayModel dday) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.themeMode == ThemeMode.dark;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '오늘의 디데이',
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colors.onSurface.withOpacity(0.7),
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => themeProvider.toggleTheme(),
+                icon: Icon(
+                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: colors.onBackground,
+                ),
+                tooltip: isDark ? '라이트 모드' : '다크 모드',
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '하루는 길지 않지만, 남는 건 많아요.',
+            style: textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: colors.onBackground,
+            ),
+          ),
           // D-Day 카드
+          const SizedBox(height: 18),
           _buildDDayCard(dday),
           const SizedBox(height: 20),
           // 디데이 추가하기 버튼 (카드 바로 아래)
@@ -163,17 +241,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// D-Day 카드 위젯
   Widget _buildDDayCard(DDayModel dday) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final ddayProvider = context.watch<DDayProvider>();
+    final pastColor = ddayProvider.dotColorPast;
+    final todayColor = ddayProvider.dotColorToday;
+    final progressValue = (dday.progressPercent / 100).clamp(0.0, 1.0);
+    final rangeText =
+        '${_formatMonthDay(dday.startDate)} ~ ${_formatMonthDay(dday.endDate)}';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: colors.outline.withOpacity(0.4)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: Theme.of(context).shadowColor.withOpacity(0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -184,28 +272,31 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  dday.name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      dday.name,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: colors.onSurface,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      rangeText,
+                      style: textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: colors.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    '${dday.burnedDays}/${dday.totalDays}  ${dday.progressPercent.toStringAsFixed(1)}%',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => _showAddDDaySheet(existingDDay: dday),
                     child: Container(
@@ -215,13 +306,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         minHeight: 40,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
+                        color: colors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         Icons.edit_rounded,
                         size: 20,
-                        color: Colors.grey[600],
+                        color: colors.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -235,13 +326,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         minHeight: 40,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.red[50],
-                        borderRadius: BorderRadius.circular(8),
+                        color: colors.errorContainer,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.delete_rounded,
                         size: 20,
-                        color: Colors.redAccent,
+                        color: colors.error,
                       ),
                     ),
                   ),
@@ -249,8 +340,44 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          _buildDotMatrix(dday),
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'D-${dday.remainingDays}',
+                style: textTheme.displaySmall?.copyWith(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w800,
+                  color: todayColor,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  '오늘까지 ${dday.burnedDays}일 지나갔어요',
+                  style: textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface.withOpacity(0.75),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              value: progressValue,
+              backgroundColor: colors.surfaceVariant,
+              color: todayColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildDotMatrix(dday, pastColor: pastColor, todayColor: todayColor),
         ],
       ),
     );
@@ -258,6 +385,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 디데이 추가하기 버튼 (카드 아래에 배치)
   Widget _buildAddButton() {
+    final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () {
         // 새로운 D-Day 추가 (existingDDay: null)
@@ -267,35 +395,31 @@ class _HomeScreenState extends State<HomeScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF66BB6A), Color(0xFF4CAF50)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
+          color: colors.primary,
+          borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF4CAF50).withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: colors.primary.withOpacity(0.25),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.add,
               size: 22,
-              color: Colors.white,
+              color: colors.onPrimary,
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(
-              '디데이 추가하기',
+              '새 디데이 만들기',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: colors.onPrimary,
               ),
             ),
           ],
@@ -306,6 +430,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 삭제 확인 다이얼로그 (빠르고 깔끔하게)
   void _showDeleteDialog(DDayModel dday) {
+    final colors = Theme.of(context).colorScheme;
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -329,7 +454,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 sigmaY: 5 * animation.value,
               ),
               child: Container(
-                color: Colors.black.withOpacity(0.3 * animation.value),
+                color: colors.scrim.withOpacity(0.3 * animation.value),
               ),
             ),
             FadeTransition(
@@ -344,11 +469,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 40),
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: colors.surface,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
+                            color:
+                                Theme.of(context).shadowColor.withOpacity(0.2),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -360,23 +486,25 @@ class _HomeScreenState extends State<HomeScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.red[50],
+                              color: colors.errorContainer,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.warning_rounded,
                               size: 36,
-                              color: Colors.redAccent,
+                              color: colors.error,
                             ),
                           ),
                           const SizedBox(height: 14),
-                          const Text(
+                          Text(
                             '디데이 삭제',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.onSurface,
+                                ),
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -384,7 +512,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: colors.onSurface.withOpacity(0.7),
                               height: 1.4,
                               decoration: TextDecoration.none,
                             ),
@@ -402,7 +530,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                       side: BorderSide(
-                                        color: Colors.grey[300]!,
+                                        color: colors.outline.withOpacity(0.6),
                                       ),
                                     ),
                                   ),
@@ -411,7 +539,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.grey[600],
+                                      color: colors.onSurface,
                                     ),
                                   ),
                                 ),
@@ -424,8 +552,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Navigator.pop(context);
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.redAccent,
-                                    foregroundColor: Colors.white,
+                                    backgroundColor: colors.error,
+                                    foregroundColor: colors.onError,
                                     elevation: 0,
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 12,
@@ -459,17 +587,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// 점 매트릭스 위젯
-  Widget _buildDotMatrix(DDayModel dday) {
+  Widget _buildDotMatrix(
+    DDayModel dday, {
+    required Color pastColor,
+    required Color todayColor,
+  }) {
+    final colors = Theme.of(context).colorScheme;
     final totalDots = dday.totalDays;
     final todayIndex = dday.todayIndex;
     const double spacing = 6.0;
     final screenWidth = MediaQuery.of(context).size.width;
     final availableWidth = screenWidth - 48 - 40;
     double dotSize = 8.0;
-
-    final ddayProvider = context.watch<DDayProvider>();
-    final pastColor = ddayProvider.dotColorPast;
-    final todayColor = ddayProvider.dotColorToday;
 
     if (totalDots > 365) {
       final scale = totalDots / 365;
@@ -488,7 +617,7 @@ class _HomeScreenState extends State<HomeScreen> {
         } else if (isToday) {
           dotColor = todayColor;
         } else {
-          dotColor = const Color(0xFFE0E0E0);
+          dotColor = colors.surfaceVariant;
         }
 
         return Container(
@@ -505,6 +634,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// FAB 위젯 (D-Day 없을 때만 사용)
   Widget _buildFAB() {
+    final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () {
         _showAddDDaySheet(); // 새로운 D-Day 추가
@@ -512,21 +642,17 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF66BB6A), Color(0xFF4CAF50)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: colors.primary,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF4CAF50).withOpacity(0.3),
+              color: colors.primary.withOpacity(0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
@@ -534,14 +660,14 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: colors.onPrimary,
               ),
             ),
-            SizedBox(width: 6),
+            const SizedBox(width: 6),
             Icon(
               Icons.add,
               size: 20,
-              color: Colors.white,
+              color: colors.onPrimary,
             ),
           ],
         ),

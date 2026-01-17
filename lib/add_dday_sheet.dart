@@ -20,6 +20,10 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
   String? _nameError; // 이름 에러 메시지
   String? _dateError; // 날짜 에러 메시지
 
+  Color _contrastOn(Color color) {
+    return color.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -30,7 +34,8 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
     _startDate = widget.existingDDay?.startDate ?? DateTime.now();
     _endDate = widget.existingDDay?.endDate ??
         DateTime.now().add(const Duration(days: 30));
-    _tempPresetIndex = context.read<DDayProvider>().selectedPresetIndex;
+    _tempPresetIndex = widget.existingDDay?.colorIndex ??
+      context.read<DDayProvider>().selectedPresetIndex;
   }
 
   @override
@@ -57,6 +62,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
     final initialDate = isStartDate ? _startDate : _endDate;
     final firstDate = DateTime(2000);
     final lastDate = DateTime(2100);
+    final colors = Theme.of(context).colorScheme;
 
     final picked = await showDatePicker(
       context: context,
@@ -67,12 +73,12 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF4CAF50),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
-            ),
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: colors.primary,
+                  onPrimary: colors.onPrimary,
+                  surface: colors.surface,
+                  onSurface: colors.onSurface,
+                ),
           ),
           child: child!,
         );
@@ -129,9 +135,9 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
       name: name,
       startDate: _startDate,
       endDate: _endDate,
+      colorIndex: _tempPresetIndex,
     );
 
-    provider.selectDotColorPreset(_tempPresetIndex);
     provider.saveDDay(dday);
     Navigator.pop(context);
   }
@@ -140,12 +146,13 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
   Widget build(BuildContext context) {
     // 키보드 높이 고려
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final ddayProvider = context.watch<DDayProvider>();
     final presets = ddayProvider.dotColorPresets;
     final selectedIndex = _tempPresetIndex;
-    final pastColor = presets[selectedIndex]['past']!;
-    final todayColor = presets[selectedIndex]['today']!;
-    final lightAccent = Color.lerp(todayColor, Colors.white, 0.8)!;
+    final selectedTodayColor = presets[selectedIndex]['today']!;
+    final selectedOnColor = _contrastOn(selectedTodayColor);
 
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -166,26 +173,25 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
             const SizedBox(height: 24),
             // 타이틀
             Text(
-              widget.existingDDay != null ? '디데이 수정' : '디데이 추가',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+              widget.existingDDay != null ? '디데이 다듬기' : '새 디데이',
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: colors.onSurface,
               ),
             ),
             const SizedBox(height: 28),
             // 이름 입력 필드
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
+                color: colors.surfaceVariant,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TextField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  hintText: '디데이 이름',
+                  hintText: '예: 수능, 첫 공연, 이사, 전역일',
                   hintStyle: TextStyle(
-                    color: Colors.grey[400],
+                    color: colors.onSurfaceVariant.withOpacity(0.6),
                     fontSize: 16,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
@@ -194,9 +200,9 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                   ),
                   border: InputBorder.none,
                 ),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
+                cursorColor: colors.primary,
+                style: textTheme.bodyLarge?.copyWith(
+                  color: colors.onSurface,
                 ),
               ),
             ),
@@ -208,10 +214,9 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     _nameError!,
-                    style: const TextStyle(
-                      color: Colors.redAccent,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colors.error,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -220,7 +225,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
             // 날짜 선택 컨테이너
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
+                color: colors.surfaceVariant,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -231,7 +236,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                     date: _startDate,
                     onTap: () => _selectDate(true),
                     showDivider: true,
-                    accentColor: todayColor,
+                    accentColor: colors.onSurface,
                   ),
                   // 마감일 선택
                   _buildDateRow(
@@ -239,7 +244,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                     date: _endDate,
                     onTap: () => _selectDate(false),
                     showDivider: false,
-                    accentColor: todayColor,
+                    accentColor: colors.onSurface,
                   ),
                 ],
               ),
@@ -252,10 +257,9 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     _dateError!,
-                    style: const TextStyle(
-                      color: Colors.redAccent,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colors.error,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -263,18 +267,18 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
             const SizedBox(height: 16),
             // 총 기간 표시 컨테이너
             _buildDurationInfo(
-              accentColor: todayColor,
-              backgroundColor: lightAccent,
+              accentColor: colors.onSurface,
+              highlightColor: selectedTodayColor,
+              backgroundColor: colors.surfaceVariant,
             ),
             const SizedBox(height: 32),
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '테마 색상',
-                style: TextStyle(
-                  fontSize: 16,
+                '색감 선택',
+                style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: Colors.black87,
+                  color: colors.onSurface,
                 ),
               ),
             ),
@@ -286,8 +290,9 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                 alignment: WrapAlignment.center,
                 children: List.generate(presets.length, (index) {
                   final pastColor = presets[index]['past']!;
-                  final todayColor = presets[index]['today']!;
+                  final itemTodayColor = presets[index]['today']!;
                   final isSelected = index == selectedIndex;
+                  final checkColor = _contrastOn(itemTodayColor);
 
                   return GestureDetector(
                     onTap: () {
@@ -303,14 +308,14 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: [pastColor, todayColor],
+                          colors: [pastColor, itemTodayColor],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: todayColor.withOpacity(0.4),
+                                  color: itemTodayColor.withOpacity(0.4),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 )
@@ -318,9 +323,9 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                             : null,
                       ),
                       child: isSelected
-                          ? const Icon(
+                          ? Icon(
                               Icons.check_rounded,
-                              color: Colors.white,
+                              color: checkColor,
                               size: 24,
                             )
                           : null,
@@ -337,18 +342,18 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
               child: ElevatedButton(
                 onPressed: _onSave,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: todayColor,
-                  foregroundColor: Colors.white,
+                  backgroundColor: selectedTodayColor,
+                  foregroundColor: selectedOnColor,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 child: Text(
-                  widget.existingDDay != null ? '수정 완료' : '디데이 추가',
-                  style: const TextStyle(
-                    fontSize: 18,
+                  widget.existingDDay != null ? '변경 저장' : '저장하기',
+                  style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
+                    color: selectedOnColor,
                   ),
                 ),
               ),
@@ -367,6 +372,9 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
     required bool showDivider,
     required Color accentColor,
   }) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       children: [
         InkWell(
@@ -381,10 +389,9 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500,
+                  style: textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface,
                   ),
                 ),
                 Row(
@@ -414,7 +421,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
             height: 1,
             indent: 16,
             endIndent: 16,
-            color: Colors.grey[300],
+            color: colors.outline.withOpacity(0.6),
           ),
       ],
     );
@@ -428,16 +435,19 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
   /// 총 기간 표시 위젯
   Widget _buildDurationInfo({
     required Color accentColor,
+    required Color highlightColor,
     required Color backgroundColor,
   }) {
     final days = _totalDays;
     final isValid = days > 0;
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
-        color: isValid ? backgroundColor : Colors.red[50],
+        color: isValid ? backgroundColor : colors.errorContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -446,14 +456,14 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
           Icon(
             Icons.calendar_today_rounded,
             size: 20,
-            color: isValid ? accentColor : Colors.redAccent,
+            color: isValid ? accentColor : colors.error,
           ),
           const SizedBox(width: 10),
           RichText(
             text: TextSpan(
-              style: TextStyle(
-                fontSize: 16,
-                color: isValid ? Colors.grey[700] : Colors.redAccent,
+              style: textTheme.bodyLarge?.copyWith(
+                color:
+                    isValid ? colors.onSurface.withOpacity(0.8) : colors.error,
               ),
               children: [
                 const TextSpan(text: '총 '),
@@ -462,7 +472,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
-                    color: isValid ? accentColor : Colors.redAccent,
+                    color: isValid ? highlightColor : colors.error,
                   ),
                 ),
                 const TextSpan(text: '일 동안'),

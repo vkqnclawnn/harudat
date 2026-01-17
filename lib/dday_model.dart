@@ -19,10 +19,15 @@ class DDayModel extends HiveObject {
   @HiveField(2)
   DateTime endDate;
 
+  /// 색상 프리셋 인덱스
+  @HiveField(3)
+  int colorIndex;
+
   DDayModel({
     required this.name,
     required this.startDate,
     required this.endDate,
+    this.colorIndex = 0,
   });
 
   /// 총 기간 (일수) 계산
@@ -107,6 +112,10 @@ class DDayProvider extends ChangeNotifier {
     _box = await Hive.openBox<DDayModel>('dday_box');
     if (_box.isNotEmpty) {
       _dday = _box.getAt(0);
+      _selectedPresetIndex = (_dday?.colorIndex ?? 0)
+          .clamp(0, _dotColorPresets.length - 1);
+    } else {
+      _selectedPresetIndex = 0;
     }
     notifyListeners();
   }
@@ -116,6 +125,8 @@ class DDayProvider extends ChangeNotifier {
     await _box.clear();
     await _box.add(dday);
     _dday = dday;
+    _selectedPresetIndex = dday.colorIndex
+        .clamp(0, _dotColorPresets.length - 1);
     notifyListeners();
   }
 
@@ -131,6 +142,9 @@ class DDayProvider extends ChangeNotifier {
   void selectDotColorPreset(int index) {
     if (index < 0 || index >= _dotColorPresets.length) return;
     _selectedPresetIndex = index;
+    if (_dday != null) {
+      _dday!.colorIndex = index;
+    }
     notifyListeners();
   }
 }
