@@ -23,11 +23,16 @@ class DDayModel extends HiveObject {
   @HiveField(3)
   int colorIndex;
 
+  /// 위젯 배경 (true = 다크)
+  @HiveField(4)
+  bool isWidgetDark;
+
   DDayModel({
     required this.name,
     required this.startDate,
     required this.endDate,
     this.colorIndex = 0,
+    this.isWidgetDark = true,
   });
 
   /// 총 기간 (일수) 계산
@@ -75,6 +80,26 @@ class DDayModel extends HiveObject {
     if (todayOnly.isAfter(endOnly)) return totalDays;
 
     return todayOnly.difference(startOnly).inDays;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'startDate': startDate.toIso8601String(),
+      'endDate': endDate.toIso8601String(),
+      'colorIndex': colorIndex,
+      'isWidgetDark': isWidgetDark,
+    };
+  }
+
+  factory DDayModel.fromJson(Map<String, dynamic> json) {
+    return DDayModel(
+      name: json['name'] as String? ?? '',
+      startDate: DateTime.parse(json['startDate'] as String),
+      endDate: DateTime.parse(json['endDate'] as String),
+      colorIndex: json['colorIndex'] as int? ?? 0,
+      isWidgetDark: json['isWidgetDark'] as bool? ?? true,
+    );
   }
 }
 

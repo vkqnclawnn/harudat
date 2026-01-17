@@ -21,13 +21,14 @@ class DDayModelAdapter extends TypeAdapter<DDayModel> {
       startDate: fields[1] as DateTime,
       endDate: fields[2] as DateTime,
       colorIndex: fields[3] as int,
+      isWidgetDark: fields[4] as bool? ?? true,
     );
   }
 
   @override
   void write(BinaryWriter writer, DDayModel obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -35,7 +36,9 @@ class DDayModelAdapter extends TypeAdapter<DDayModel> {
       ..writeByte(2)
       ..write(obj.endDate)
       ..writeByte(3)
-      ..write(obj.colorIndex);
+      ..write(obj.colorIndex)
+      ..writeByte(4)
+      ..write(obj.isWidgetDark);
   }
 
   @override
