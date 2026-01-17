@@ -35,7 +35,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
     _endDate = widget.existingDDay?.endDate ??
         DateTime.now().add(const Duration(days: 30));
     _tempPresetIndex = widget.existingDDay?.colorIndex ??
-      context.read<DDayProvider>().selectedPresetIndex;
+        context.read<DDayProvider>().selectedPresetIndex;
   }
 
   @override
@@ -105,7 +105,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
   }
 
   /// 저장 버튼 클릭 처리
-  void _onSave() {
+  Future<void> _onSave() async {
     final name = _nameController.text.trim();
     final provider = context.read<DDayProvider>();
 
@@ -130,7 +130,7 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
       return;
     }
 
-    // D-Day 저장
+    // D-Day 저장/수정
     final dday = DDayModel(
       name: name,
       startDate: _startDate,
@@ -138,7 +138,11 @@ class _AddDDaySheetState extends State<AddDDaySheet> {
       colorIndex: _tempPresetIndex,
     );
 
-    provider.saveDDay(dday);
+    if (widget.existingDDay != null) {
+      await provider.updateDDay(widget.existingDDay!, dday);
+    } else {
+      await provider.saveDDay(dday);
+    }
     Navigator.pop(context);
   }
 

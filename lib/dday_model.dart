@@ -80,7 +80,7 @@ class DDayModel extends HiveObject {
 
 /// D-Day 데이터를 관리하는 Provider
 class DDayProvider extends ChangeNotifier {
-  DDayModel? _dday;
+  List<DDayModel> _ddays = [];
   late Box<DDayModel> _box;
 
   // ✅ 형님이 정해주신 10가지 프리셋
@@ -99,42 +99,72 @@ class DDayProvider extends ChangeNotifier {
 
   int _selectedPresetIndex = 0;
 
-  DDayModel? get dday => _dday;
-  bool get hasDDay => _dday != null;
+  List<DDayModel> get ddayList => List.unmodifiable(_ddays);
+  bool get hasDDay => _ddays.isNotEmpty;
 
   Color get dotColorPast => _dotColorPresets[_selectedPresetIndex]['past']!;
   Color get dotColorToday => _dotColorPresets[_selectedPresetIndex]['today']!;
   List<Map<String, Color>> get dotColorPresets => _dotColorPresets;
   int get selectedPresetIndex => _selectedPresetIndex;
 
+  Map<String, Color> presetForIndex(int index) {
+    final safeIndex = index.clamp(0, _dotColorPresets.length - 1).toInt();
+    return _dotColorPresets[safeIndex];
+  }
+
   /// Hive Box 초기화 및 데이터 로드
   Future<void> init() async {
     _box = await Hive.openBox<DDayModel>('dday_box');
-    if (_box.isNotEmpty) {
-      _dday = _box.getAt(0);
-      _selectedPresetIndex = (_dday?.colorIndex ?? 0)
-          .clamp(0, _dotColorPresets.length - 1);
-    } else {
-      _selectedPresetIndex = 0;
-    }
+    _ddays = _box.values.toList();
+    _selectedPresetIndex = _ddays.isNotEmpty
+        ? (_ddays.last.colorIndex).clamp(0, _dotColorPresets.length - 1).toInt()
+        : 0;
     notifyListeners();
   }
 
-  /// D-Day 저장 (기존 데이터 덮어쓰기)
+  /// D-Day 저장 (새 항목 추가)
   Future<void> saveDDay(DDayModel dday) async {
-    await _box.clear();
     await _box.add(dday);
-    _dday = dday;
-    _selectedPresetIndex = dday.colorIndex
-        .clamp(0, _dotColorPresets.length - 1);
+    _ddays = _box.values.toList();
+    _selectedPresetIndex =
+        dday.colorIndex.clamp(0, _dotColorPresets.length - 1).toInt();
+    notifyListeners();
+  }
+
+  /// D-Day 수정
+  Future<void> updateDDay(DDayModel target, DDayModel updated) async {
+    final key = target.key;
+    if (key != null) {
+      await _box.put(key, updated);
+    } else {
+      final index = _ddays.indexOf(target);
+      if (index != -1) {
+        await _box.putAt(index, updated);
+      } else {
+        await _box.add(updated);
+      }
+    }
+    _ddays = _box.values.toList();
+    _selectedPresetIndex =
+        updated.colorIndex.clamp(0, _dotColorPresets.length - 1).toInt();
     notifyListeners();
   }
 
   /// D-Day 삭제
-  Future<void> deleteDDay() async {
-    await _box.clear();
-    _dday = null;
-    _selectedPresetIndex = 0;
+  Future<void> deleteDDay(DDayModel target) async {
+    final key = target.key;
+    if (key != null) {
+      await _box.delete(key);
+    } else {
+      final index = _ddays.indexOf(target);
+      if (index != -1) {
+        await _box.deleteAt(index);
+      }
+    }
+    _ddays = _box.values.toList();
+    _selectedPresetIndex = _ddays.isNotEmpty
+        ? (_ddays.last.colorIndex).clamp(0, _dotColorPresets.length - 1).toInt()
+        : 0;
     notifyListeners();
   }
 
@@ -142,9 +172,6 @@ class DDayProvider extends ChangeNotifier {
   void selectDotColorPreset(int index) {
     if (index < 0 || index >= _dotColorPresets.length) return;
     _selectedPresetIndex = index;
-    if (_dday != null) {
-      _dday!.colorIndex = index;
-    }
     notifyListeners();
   }
 }

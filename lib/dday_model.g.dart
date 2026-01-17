@@ -20,19 +20,22 @@ class DDayModelAdapter extends TypeAdapter<DDayModel> {
       name: fields[0] as String,
       startDate: fields[1] as DateTime,
       endDate: fields[2] as DateTime,
+      colorIndex: fields[3] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, DDayModel obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
       ..write(obj.startDate)
       ..writeByte(2)
-      ..write(obj.endDate);
+      ..write(obj.endDate)
+      ..writeByte(3)
+      ..write(obj.colorIndex);
   }
 
   @override
