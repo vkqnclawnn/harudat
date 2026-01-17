@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
 part 'dday_model.g.dart';
@@ -69,5 +70,67 @@ class DDayModel extends HiveObject {
     if (todayOnly.isAfter(endOnly)) return totalDays;
 
     return todayOnly.difference(startOnly).inDays;
+  }
+}
+
+/// D-Day 데이터를 관리하는 Provider
+class DDayProvider extends ChangeNotifier {
+  DDayModel? _dday;
+  late Box<DDayModel> _box;
+
+  // ✅ 형님이 정해주신 10가지 프리셋
+  final List<Map<String, Color>> _dotColorPresets = [
+    {'past': const Color(0xFF66BB6A), 'today': const Color(0xFF4CAF50)},
+    {'past': const Color(0xFF42A5F5), 'today': const Color(0xFF1E88E5)},
+    {'past': const Color(0xFFAB47BC), 'today': const Color(0xFF8E24AA)},
+    {'past': const Color(0xFFFFA726), 'today': const Color(0xFFFB8C00)},
+    {'past': const Color(0xFFFF7043), 'today': const Color(0xFFF4511E)},
+    {'past': const Color(0xFFEF5350), 'today': const Color(0xFFE53935)},
+    {'past': const Color(0xFF26A69A), 'today': const Color(0xFF00897B)},
+    {'past': const Color(0xFF78909C), 'today': const Color(0xFF546E7A)},
+    {'past': const Color(0xFFEC407A), 'today': const Color(0xFFD81B60)},
+    {'past': const Color(0xFF9CCC65), 'today': const Color(0xFF7CB342)},
+  ];
+
+  int _selectedPresetIndex = 0;
+
+  DDayModel? get dday => _dday;
+  bool get hasDDay => _dday != null;
+
+  Color get dotColorPast => _dotColorPresets[_selectedPresetIndex]['past']!;
+  Color get dotColorToday => _dotColorPresets[_selectedPresetIndex]['today']!;
+  List<Map<String, Color>> get dotColorPresets => _dotColorPresets;
+  int get selectedPresetIndex => _selectedPresetIndex;
+
+  /// Hive Box 초기화 및 데이터 로드
+  Future<void> init() async {
+    _box = await Hive.openBox<DDayModel>('dday_box');
+    if (_box.isNotEmpty) {
+      _dday = _box.getAt(0);
+    }
+    notifyListeners();
+  }
+
+  /// D-Day 저장 (기존 데이터 덮어쓰기)
+  Future<void> saveDDay(DDayModel dday) async {
+    await _box.clear();
+    await _box.add(dday);
+    _dday = dday;
+    notifyListeners();
+  }
+
+  /// D-Day 삭제
+  Future<void> deleteDDay() async {
+    await _box.clear();
+    _dday = null;
+    _selectedPresetIndex = 0;
+    notifyListeners();
+  }
+
+  /// 색상 선택
+  void selectDotColorPreset(int index) {
+    if (index < 0 || index >= _dotColorPresets.length) return;
+    _selectedPresetIndex = index;
+    notifyListeners();
   }
 }

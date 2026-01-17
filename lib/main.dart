@@ -5,40 +5,6 @@ import 'package:provider/provider.dart';
 import 'dday_model.dart';
 import 'home_screen.dart';
 
-/// D-Day 데이터를 관리하는 Provider
-class DDayProvider extends ChangeNotifier {
-  DDayModel? _dday;
-  late Box<DDayModel> _box;
-
-  DDayModel? get dday => _dday;
-  bool get hasDDay => _dday != null;
-
-  /// Hive Box 초기화 및 데이터 로드
-  Future<void> init() async {
-    _box = await Hive.openBox<DDayModel>('dday_box');
-    if (_box.isNotEmpty) {
-      _dday = _box.getAt(0);
-    }
-    notifyListeners();
-  }
-
-  /// D-Day 저장 (기존 데이터 덮어쓰기)
-  Future<void> saveDDay(DDayModel dday) async {
-    // 기존 데이터 삭제 후 새로 저장
-    await _box.clear();
-    await _box.add(dday);
-    _dday = dday;
-    notifyListeners();
-  }
-
-  /// D-Day 삭제
-  Future<void> deleteDDay() async {
-    await _box.clear();
-    _dday = null;
-    notifyListeners();
-  }
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
