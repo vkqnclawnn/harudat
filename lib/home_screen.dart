@@ -222,14 +222,7 @@ class _HomeScreenState extends State<HomeScreen>
                       const EdgeInsets.symmetric(vertical: 48, horizontal: 28),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(28),
-                    gradient: LinearGradient(
-                      colors: [
-                        colors.surfaceContainerHighest,
-                        colors.surface,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: colors.surface,
                     border: Border.all(
                       color: colors.outline.withValues(alpha: 0.3),
                     ),
@@ -251,12 +244,7 @@ class _HomeScreenState extends State<HomeScreen>
                         height: 72,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              colors.primary.withValues(alpha: 0.15),
-                              colors.primary.withValues(alpha: 0.35),
-                            ],
-                          ),
+                          color: colors.primary.withValues(alpha: 0.2),
                         ),
                         child: Icon(
                           Icons.hourglass_empty_rounded,
@@ -318,15 +306,6 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '오늘의 D-Dot',
-                      style: textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface.withValues(alpha: 0.6),
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
                       'D-Dot',
                       style: textTheme.displaySmall?.copyWith(
                         fontWeight: FontWeight.w800,
@@ -357,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           // 디데이 추가하기 버튼 (카드 바로 아래)
-          _buildAddButton(),
+          Center(child: _buildSecondaryAddButton()),
           const SizedBox(height: 56), // 여유 공간
         ],
       ),
@@ -380,14 +359,7 @@ class _HomeScreenState extends State<HomeScreen>
       padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          colors: [
-            colors.surface,
-            todayColor.withValues(alpha: 0.12),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: colors.surface,
         border: Border.all(color: colors.outline.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
@@ -485,9 +457,9 @@ class _HomeScreenState extends State<HomeScreen>
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 2),
               Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
                   '오늘까지 ${dday.burnedDays}일 지나갔어요',
                   style: textTheme.bodySmall?.copyWith(
@@ -498,17 +470,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: (dday.progressPercent / 100).clamp(0.0, 1.0),
-              minHeight: 8,
-              backgroundColor: pastColor.withValues(alpha: 0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(todayColor),
-            ),
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           _buildDotMatrix(dday, pastColor: pastColor, todayColor: todayColor),
         ],
       ),
@@ -573,6 +535,53 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildSecondaryAddButton() {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return GestureDetector(
+      onTap: () {
+        _showAddDDaySheet();
+      },
+      child: Container(
+        width: 200,
+        height: 52,
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: colors.outline.withValues(alpha: 0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).shadowColor.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.add,
+                size: 18,
+                color: colors.onSurface,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '새 디데이 만들기',
+                style: textTheme.bodyMedium?.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// 삭제 확인 다이얼로그 (빠르고 깔끔하게)
   void _showDeleteDialog(DDayModel dday) {
     final colors = Theme.of(context).colorScheme;
@@ -609,6 +618,13 @@ class _HomeScreenState extends State<HomeScreen>
                 color: colors.scrim.withValues(
                   alpha: 0.3 * animation.value,
                 ),
+              ),
+            ),
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () => Navigator.pop(context),
+                child: const SizedBox.expand(),
               ),
             ),
             FadeTransition(
